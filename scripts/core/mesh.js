@@ -8,6 +8,7 @@ import config from '../config/config.js';
 
 export * from './mesh_base.js';
 import {MeshFlags, MeshFeatures, MeshTypes} from './mesh_base.js';
+import {cubic, d2cubic, dcubic} from './bezier.js';
 
 const sel = [1, 0.8, 0, 1];
 const high = [1, 0.8, 0.7, 1]
@@ -270,23 +271,48 @@ export class Edge extends Element {
   }
 
   evaluate(t) {
-    return _evaluate_vs.next().load(this.v1).interp(this.v2, t);
+    const p = _evaluate_vs.next();
+    if (this.h1) {
+      const {v1, h1, h2, v2} = this
+
+      for (let i = 0; i < p.length; i++) {
+        p[i] = cubic(v1[i], h1[i], h2[i], v2[i], t);
+      }
+    } else {
+      p.load(this.v1).interp(this.v2, t);
+    }
+
+    return p;
   }
 
   derivative(t) {
-    let df = 0.0001;
-    let a = this.evaluate(t - df);
-    let b = this.evaluate(t + df);
+    const p = _evaluate_vs.next();
+    const {v1, h1, h2, v2} = this
 
-    return b.sub(a).mulScalar(0.5/df);
+    if (this.h1) {
+      for (let i = 0; i < p.length; i++) {
+        p[i] = dcubic(v1[i], h1[i], h2[i], v2[i], t);
+      }
+    } else {
+      p.load(this.v2).sub(this.v1);
+    }
+
+    return p;
   }
 
   derivative2(t) {
-    let df = 0.0001;
-    let a = this.derivative(t - df);
-    let b = this.derivative(t + df);
+    const p = _evaluate_vs.next();
+    const {v1, h1, h2, v2} = this
 
-    return b.sub(a).mulScalar(0.5/df);
+    if (this.h1) {
+      for (let i = 0; i < p.length; i++) {
+        p[i] = d2cubic(v1[i], h1[i], h2[i], v2[i], t);
+      }
+    } else {
+      p.zero();
+    }
+
+    return p;
   }
 
   curvature(t) {
