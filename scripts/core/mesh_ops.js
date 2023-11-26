@@ -50,15 +50,21 @@ export class SplitEdgeOp extends MeshOp {
     return {
       uiname  : "Split Edge",
       toolpath: "mesh.split_edge",
-      inputs  : ToolOp.inherit({})
+      inputs  : ToolOp.inherit({
+        steps : new IntProperty(1)
+          .setRange(1, 100)
+          .noUnits()
+          .saveLastValue()
+      })
     }
   }
 
   exec(ctx) {
     let mesh = ctx.mesh;
+    const {steps} = this.getInputs();
 
     for (let e of new Set(mesh.edges.selected.editable)) {
-      mesh.splitEdge(e);
+      mesh.splitEdgeMulti(e, steps);
     }
   }
 }

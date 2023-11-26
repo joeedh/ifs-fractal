@@ -342,6 +342,8 @@ export class TranslateOp extends TransformOp {
 
     let tdata = this.getTransData(ctx);
 
+    console.log(tdata);
+
     for (let tlist of tdata) {
       for (let td of tlist) {
         td.apply(matrix);

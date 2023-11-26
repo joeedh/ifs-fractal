@@ -178,6 +178,10 @@ export class Workspace extends simple.Editor {
     props.setAttribute("datapath", "properties");
 
     tab.add(props);
+    tab.toolPanel("mesh.split_edge");
+
+    tab = sidebar.tab("Last Command")
+    tab.add(UIBase.createElement("last-tool-panel-x"));
   }
 
   draw() {

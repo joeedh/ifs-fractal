@@ -235,7 +235,8 @@ Handle.STRUCT = nstructjs.inherit(Handle, Element, "mesh.Handle") + `
 `;
 nstructjs.register(Handle);
 
-let _evaluate_vs = util.cachering.fromConstructor(Vector3, 64);
+const Vector = (new Vertex()).length === 3 ? Vector3 : Vector2;
+const _evaluate_vs = util.cachering.fromConstructor(Vector, 64);
 
 export class Edge extends Element {
   constructor() {
@@ -272,14 +273,10 @@ export class Edge extends Element {
 
   evaluate(t) {
     const p = _evaluate_vs.next();
-    if (this.h1) {
-      const {v1, h1, h2, v2} = this
+    const {v1, h1, h2, v2} = this
 
-      for (let i = 0; i < p.length; i++) {
-        p[i] = cubic(v1[i], h1[i], h2[i], v2[i], t);
-      }
-    } else {
-      p.load(this.v1).interp(this.v2, t);
+    for (let i = 0; i < p.length; i++) {
+      p[i] = cubic(v1[i], h1[i], h2[i], v2[i], t);
     }
 
     return p;
@@ -289,12 +286,8 @@ export class Edge extends Element {
     const p = _evaluate_vs.next();
     const {v1, h1, h2, v2} = this
 
-    if (this.h1) {
-      for (let i = 0; i < p.length; i++) {
-        p[i] = dcubic(v1[i], h1[i], h2[i], v2[i], t);
-      }
-    } else {
-      p.load(this.v2).sub(this.v1);
+    for (let i = 0; i < p.length; i++) {
+      p[i] = dcubic(v1[i], h1[i], h2[i], v2[i], t);
     }
 
     return p;
@@ -304,12 +297,8 @@ export class Edge extends Element {
     const p = _evaluate_vs.next();
     const {v1, h1, h2, v2} = this
 
-    if (this.h1) {
-      for (let i = 0; i < p.length; i++) {
-        p[i] = d2cubic(v1[i], h1[i], h2[i], v2[i], t);
-      }
-    } else {
-      p.zero();
+    for (let i = 0; i < p.length; i++) {
+      p[i] = d2cubic(v1[i], h1[i], h2[i], v2[i], t);
     }
 
     return p;
@@ -944,6 +933,14 @@ export class Mesh {
     }
   }
 
+  clear() {
+    this.elists = {};
+    this.eidMap = new Map();
+    this.makeElists();
+
+    return this;
+  }
+
   get haveHandles() {
     return this.features & MeshFeatures.HANDLES;
   }
@@ -1343,26 +1340,35 @@ export class Mesh {
     }
   }
 
+  splitEdgeMulti(e, steps) {
+    let n = steps;
+
+    for (let i = 0; i < steps; i++) {
+      let t = 1.0/(n + 1);
+      n--;
+
+      e = this.splitEdge(e, t)[0];
+    }
+  }
+
   splitEdge(e, t = 0.5) {
-    let nv = this.makeVertex(e.v1).interp(e.v2, t);
+    let nv = this.makeVertex(e.evaluate(t));
     let ne = this.makeEdge(nv, e.v2);
+
+    if (this.features & MeshFeatures.HANDLES) {
+      let dv1 = e.derivative(0.0).mulScalar(1.0/3.0);
+      let dv2 = e.derivative(t).mulScalar(1.0/3.0);
+      let dv3 = e.derivative(1.0).mulScalar(1.0/3.0);
+
+      e.h1.load(dv1).mulScalar(t).add(e.v1);
+      e.h2.load(dv2).mulScalar(-t).add(nv);
+      ne.h1.load(dv2).mulScalar(1.0 - t).add(ne.v1);
+      ne.h2.load(dv3).mulScalar(t - 1.0).add(ne.v2);
+    }
 
     e.v2.edges.remove(e);
     e.v2 = nv;
     nv.edges.push(e);
-
-    let vector = e.v1.length === 2 ? Vector2 : Vector3;
-
-    //e.h.interp(e.v1, 1.0/3.0);
-    //ne.h.load(h).interp(ne.v2, 0.5);
-    //nv.interp(h, 0.5);
-
-    if (this.features & MeshFeatures.HANDLES) {
-      ne.h1.load(nv).interp(ne.v2, 1.0/3.0);
-      ne.h2.load(nv).interp(ne.v2, 2.0/3.0);
-
-      e.h2.load(e.v1).interp(nv, 2.0/3.0);
-    }
 
     if (e.flag & MeshFlags.SELECT) {
       this.edges.setSelect(ne, true);

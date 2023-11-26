@@ -149,22 +149,19 @@ export class MeshEditor extends ToolModeBase {
 
       g.fillStyle = color2css(color);
       for (let list of f.lists) {
-        let first = true;
+        let l = list.l.prev;
+        g.moveTo(l.v[0], l.v[1]);
+
         for (let l of list) {
-          if (first) {
-            first = false;
-            g.moveTo(l.v[0], l.v[1]);
-          } else {
-            if (haveHandles) {
-              let e = l.prev.e;
-              if (e.v2 === l.v) {
-                g.bezierCurveTo(e.h1[0], e.h1[1], e.h2[0], e.h2[1], l.v[0], l.v[1]);
-              } else {
-                g.bezierCurveTo(e.h2[0], e.h2[1], e.h2[0], e.h2[1], l.v[0], l.v[1]);
-              }
+          if (haveHandles) {
+            let e = l.prev.e;
+            if (e.v2 === l.v) {
+              g.bezierCurveTo(e.h1[0], e.h1[1], e.h2[0], e.h2[1], l.v[0], l.v[1]);
             } else {
-              g.lineTo(l.v[0], l.v[1]);
+              g.bezierCurveTo(e.h2[0], e.h2[1], e.h2[0], e.h2[1], l.v[0], l.v[1]);
             }
+          } else {
+            g.lineTo(l.v[0], l.v[1]);
           }
         }
 

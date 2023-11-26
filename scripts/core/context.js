@@ -3,10 +3,12 @@ import config from '../config/config.js';
 /* Set default undo handlers; they just saves and reload the file
 *  minus the screen layout.*/
 
-import {simple, ToolOp} from '../path.ux/scripts/pathux.js';
+import {buildToolSysAPI, simple, ToolOp} from '../path.ux/scripts/pathux.js';
 import {Workspace} from './editor.js';
 import {MeshTypes} from './mesh.js';
 import {ImageWrangler} from './image_wrangler.js';
+import './mesh_ops.js';
+import './mesh_selectops.js';
 
 ToolOp.prototype.undoPre = function (ctx) {
   this._undo = ctx.state.saveFileSync({
