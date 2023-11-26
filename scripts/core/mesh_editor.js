@@ -93,6 +93,8 @@ export class MeshEditor extends ToolModeBase {
   draw(ctx, canvas, g) {
     this.ctx = ctx;
 
+    const drawControls = ctx.properties.drawControls;
+
     let mesh = this.ctx.mesh;
 
     let w = 8;
@@ -116,7 +118,7 @@ export class MeshEditor extends ToolModeBase {
       }
     }
 
-    if (haveHandles) {
+    if (haveHandles && drawControls) {
       for (let h of mesh.handles.visible) {
         g.strokeStyle = color2css(getElemColor(mesh.handles, h));
         let v = h.owner.vertex(h);
@@ -128,17 +130,19 @@ export class MeshEditor extends ToolModeBase {
       }
     }
 
-    let vlists = [mesh.verts]
-    if (haveHandles) {
-      vlists.push(mesh.handles);
-    }
+    if (drawControls) {
+      let vlists = [mesh.verts]
+      if (haveHandles) {
+        vlists.push(mesh.handles);
+      }
 
-    for (let list of vlists) {
-      for (let v of list.visible) {
-        g.fillStyle = color2css(getElemColor(list, v));
-        g.beginPath();
-        g.rect(v[0] - w*0.5, v[1] - w*0.5, w, w);
-        g.fill();
+      for (let list of vlists) {
+        for (let v of list.visible) {
+          g.fillStyle = color2css(getElemColor(list, v));
+          g.beginPath();
+          g.rect(v[0] - w*0.5, v[1] - w*0.5, w, w);
+          g.fill();
+        }
       }
     }
 
@@ -154,12 +158,8 @@ export class MeshEditor extends ToolModeBase {
 
         for (let l of list) {
           if (haveHandles) {
-            let e = l.prev.e;
-            if (e.v2 === l.v) {
-              g.bezierCurveTo(e.h1[0], e.h1[1], e.h2[0], e.h2[1], l.v[0], l.v[1]);
-            } else {
-              g.bezierCurveTo(e.h2[0], e.h2[1], e.h2[0], e.h2[1], l.v[0], l.v[1]);
-            }
+            let {h1, h2} = l.prev;
+            g.bezierCurveTo(h1[0], h1[1], h2[0], h2[1], l.v[0], l.v[1]);
           } else {
             g.lineTo(l.v[0], l.v[1]);
           }

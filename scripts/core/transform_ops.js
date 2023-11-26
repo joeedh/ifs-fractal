@@ -102,13 +102,10 @@ export class TransformVert extends TransformElem {
 
     for (let td of list) {
       let vlen = td.v.length;
+      ret.push(td.v.eid);
 
-      for (let td of list) {
-        ret.push(td.v.eid);
-
-        for (let i = 0; i < vlen; i++) {
-          ret.push(td.v[i]);
-        }
+      for (let i = 0; i < vlen; i++) {
+        ret.push(td.v[i]);
       }
     }
 

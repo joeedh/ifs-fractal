@@ -7,6 +7,7 @@ import {
   EnumProperty, FlagProperty, Vec3Property
 } from '../path.ux/pathux.js';
 import {Mesh, MeshFlags, MeshTypes} from './mesh.js';
+import {vertexSmooth} from './mesh_utils.js';
 
 export let SelToolModes = {
   ADD : 0,
@@ -51,7 +52,7 @@ export class SplitEdgeOp extends MeshOp {
       uiname  : "Split Edge",
       toolpath: "mesh.split_edge",
       inputs  : ToolOp.inherit({
-        steps : new IntProperty(1)
+        steps: new IntProperty(1)
           .setRange(1, 100)
           .noUnits()
           .saveLastValue()
@@ -169,7 +170,7 @@ export class ExtrudeVertOp extends MeshOp {
       uiname  : "Extrude Vertex",
       toolpath: "mesh.extrude_vertex",
       inputs  : ToolOp.inherit({
-        co : new Vec3Property()
+        co: new Vec3Property()
       })
     }
   }
@@ -200,6 +201,7 @@ export class ExtrudeVertOp extends MeshOp {
     window.redraw_all();
   }
 }
+
 ToolOp.register(ExtrudeVertOp);
 
 
@@ -209,7 +211,7 @@ export class MakeFaceOp extends MeshOp {
       uiname  : "Make Face",
       toolpath: "mesh.make_face",
       inputs  : ToolOp.inherit({
-        co : new Vec3Property()
+        co: new Vec3Property()
       })
     }
   }
@@ -297,14 +299,15 @@ export class MakeFaceOp extends MeshOp {
     }
   }
 }
+
 ToolOp.register(MakeFaceOp);
 
 export class FixWindingsOp extends MeshOp {
   static tooldef() {
     return {
-      uiname : "Fix Windings",
-      toolpath : "mesh.fix_windings",
-      inputs : ToolOp.inherit({})
+      uiname  : "Fix Windings",
+      toolpath: "mesh.fix_windings",
+      inputs  : ToolOp.inherit({})
     }
   }
 
@@ -321,14 +324,15 @@ export class FixWindingsOp extends MeshOp {
     }
   }
 }
+
 ToolOp.register(FixWindingsOp);
 
 export class FixMeshOp extends MeshOp {
   static tooldef() {
     return {
-      uiname : "Fix Mesh",
-      toolpath : "mesh.repair",
-      inputs : ToolOp.inherit({})
+      uiname  : "Fix Mesh",
+      toolpath: "mesh.repair",
+      inputs  : ToolOp.inherit({})
     }
   }
 
@@ -338,4 +342,55 @@ export class FixMeshOp extends MeshOp {
     mesh.validate();
   }
 }
+
 ToolOp.register(FixMeshOp);
+
+export class VertexSmoothOp extends MeshOp {
+  static tooldef() {
+    return {
+      uiname  : "Vertex Smooth",
+      toolpath: "mesh.vertex_smooth",
+      inputs  : ToolOp.inherit({
+        repeat: new IntProperty(1)
+          .setRange(1, 100)
+          .noUnits()
+          .saveLastValue(),
+        factor: new FloatProperty(0.5)
+          .setRange(0.0, 1.0)
+          .noUnits()
+          .saveLastValue(),
+      })
+    }
+  }
+
+  exec(ctx) {
+    let mesh = ctx.mesh;
+    const {repeat, factor} = this.getInputs();
+
+    for (let i = 0; i < repeat; i++) {
+      vertexSmooth(mesh, mesh.verts.selected.editable, factor);
+    }
+  }
+}
+ToolOp.register(VertexSmoothOp);
+
+
+export class ReverseEdgeOp extends MeshOp {
+  static tooldef() {
+    return {
+      uiname  : "Reverse Edge Order",
+      toolpath: "mesh.reverse_edge",
+      inputs  : ToolOp.inherit({
+      })
+    }
+  }
+
+  exec(ctx) {
+    let mesh = ctx.mesh;
+
+    for (let e of mesh.edges.selected.editable) {
+      mesh.reverseEdge(e);
+    }
+  }
+}
+ToolOp.register(ReverseEdgeOp);

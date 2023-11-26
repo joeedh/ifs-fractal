@@ -17,9 +17,10 @@ nstructjs.setWarningMode(0);
 export const STARTUP_FILE_KEY = "_startup_file_1";
 
 export const Properties = {
-  steps  : {type: "int", value: 1, min: 0, max: 10, slideSpeed: 5},
-  boolVal: {type: "bool", value: true},
-  panel  : {
+  drawControls: {type: "bool", value: true},
+  steps       : {type: "int", value: 1, min: 0, max: 10, slideSpeed: 5},
+  boolVal     : {type: "bool", value: true},
+  panel       : {
     type  : "panel",
     float : {type: "float", value: 0, min: 0, max: 10, step: 0.05, decimalPlaces: 3},
     slider: {type: "float", slider: true, value: 0, min: 0, max: 10, step: 0.05, decimalPlaces: 3},

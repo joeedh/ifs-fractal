@@ -38,6 +38,7 @@ export class Workspace extends simple.Editor {
 
     this.keymap = new KeyMap();
 
+    this.keymap.add(new HotKey("W", [], "mesh.vertex_smooth"));
     this.keymap.add(new HotKey("Space", [], () => {
       let menu = [];
 
@@ -178,7 +179,13 @@ export class Workspace extends simple.Editor {
     props.setAttribute("datapath", "properties");
 
     tab.add(props);
+
+    tab = sidebar.tab("Tools")
     tab.toolPanel("mesh.split_edge");
+    tab.toolPanel("mesh.vertex_smooth");
+    tab.tool("mesh.fix_windings")
+    tab.tool("mesh.make_face")
+    tab.tool("mesh.reverse_edge")
 
     tab = sidebar.tab("Last Command")
     tab.add(UIBase.createElement("last-tool-panel-x"));
