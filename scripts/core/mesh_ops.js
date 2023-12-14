@@ -317,7 +317,15 @@ export class FixWindingsOp extends MeshOp {
     for (let f of mesh.faces.selected.editable) {
       let l = f.lists[0].l;
 
-      if (math.normal_tri(l.v, l.next.v, l.next.next.v)[2] < 0.0) {
+      const v1 = new Vector3(l.v.co)
+      const v2 = new Vector3(l.next.v.co)
+      const v3 = new Vector3(l.next.next.v.co)
+
+      if (v1.length === 2) {
+        v1[2] = v2[2] = v3[2] = 0.0;
+      }
+
+      if (math.normal_tri(v1, v2, v3)[2] < 0.0) {
         mesh.reverseWinding(f);
         console.log(f.eid, f);
       }
@@ -372,6 +380,7 @@ export class VertexSmoothOp extends MeshOp {
     }
   }
 }
+
 ToolOp.register(VertexSmoothOp);
 
 
@@ -380,8 +389,7 @@ export class ReverseEdgeOp extends MeshOp {
     return {
       uiname  : "Reverse Edge Order",
       toolpath: "mesh.reverse_edge",
-      inputs  : ToolOp.inherit({
-      })
+      inputs  : ToolOp.inherit({})
     }
   }
 
@@ -393,4 +401,5 @@ export class ReverseEdgeOp extends MeshOp {
     }
   }
 }
+
 ToolOp.register(ReverseEdgeOp);

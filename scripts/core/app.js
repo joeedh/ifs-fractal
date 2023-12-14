@@ -3,14 +3,18 @@ import {
   NumberConstraints, TextBoxBase, nstructjs
 } from '../path.ux/pathux.js';
 
-import './editor.js';
+import './workspace.js';
 import {Mesh, MeshTypes} from './mesh.js';
-import {Workspace} from './editor.js';
+import {Workspace} from './workspace.js';
 import {FileArgs} from '../path.ux/scripts/simple/file.js';
 import {PropertiesBag} from './property_templ.js';
 import {Context} from './context.js';
 import config from '../config/config.js';
 import {ImageWrangler} from './image_wrangler.js';
+import {Icons} from '../../assets/icon_enum.js';
+import {ToolModeBase, ToolModeClasses} from '../toolmode/toolmode_base.js';
+
+import '../toolmode/all.js';
 
 nstructjs.setWarningMode(0);
 
@@ -56,6 +60,67 @@ window.addEventListener("contextmenu", (e) => {
 });
 
 
+export class ToolModeSet extends Array {
+  active = undefined;
+  activeIndex = 0;
+
+  static STRUCT = nstructjs.inlineRegister(this, `
+ToolModeSet {
+  this        : array(abstract(ToolModeBase));
+  activeIndex : int; 
+}
+  `);
+
+  loadSTRUCT(reader) {
+    reader(this);
+  }
+
+  push(...toolmodes) {
+    for (let toolmode of toolmodes) {
+      if (this.active === undefined) {
+        this.active = toolmode;
+      }
+    }
+
+    return super.push(...toolmodes)
+  }
+
+  /* Okay now this is the weirdest bug ever, get/setters are broken on Array subclasses?*/
+  /*
+  get activeIndex() {
+    return this.length > 0 ? this.indexOf(this.active) : 0;
+  }
+
+  set activeIndex(i) {
+    console.warn("setting active", i, this[i])
+    this.active = this[i];
+  }
+  */
+
+  static defineAPI(api, st) {
+    st.enum("activeIndex", "activeIndex", ToolModeBase.makeEnumProp())
+      .on('change', () => window.redraw_all())
+
+    return st;
+  }
+
+  constructor() {
+    super()
+
+    /* Okay now this is the weirdest bug ever, class get/setters are broken
+     * on Array subclasses?
+     **/
+    Object.defineProperty(this, "activeIndex", {
+      get() {
+        return this.indexOf(this.active)
+      },
+      set(i) {
+        this.active = this[i];
+      }
+    })
+  }
+}
+
 export class App extends simple.AppState {
   constructor() {
     super(Context);
@@ -63,12 +128,18 @@ export class App extends simple.AppState {
     this.mesh = undefined;
     this.properties = undefined;
 
+    this.toolmodes = new ToolModeSet()
+
     this.createNewFile(true);
 
     this.saveFilesInJSON = true;
     let dimen = 128;
 
     this.testImages = new ImageWrangler(TestImages);
+  }
+
+  get toolmode() {
+    return this.toolmodes.active;
   }
 
   createNewFile(noReset = false) {
@@ -88,6 +159,11 @@ export class App extends simple.AppState {
     let v4 = this.mesh.makeVertex([s + d, s, 0]);
 
     this.mesh.makeFace([v1, v2, v3, v4]);
+
+    this.toolmodes = new ToolModeSet
+    for (let cls of ToolModeClasses) {
+      this.toolmodes.push(new cls(this.ctx));
+    }
   }
 
   saveStartupFile() {
@@ -115,7 +191,7 @@ export class App extends simple.AppState {
   }
 
   getFileObjects() {
-    return [this.mesh, this.properties, this.testImages];
+    return [this.mesh, this.properties, this.testImages, this.toolmodes];
   }
 
   saveFileSync(objects, args = {}) {
@@ -152,8 +228,36 @@ export class App extends simple.AppState {
       }
     }
 
-    window.redraw_all();
+    for (let obj of file.objects) {
+      if (obj instanceof ToolModeSet) {
+        this.toolmodes = new ToolModeSet()
+        this.toolmodes.length = 0;
 
+        /* Reorder toolmodes. */
+        for (let toolmode of obj) {
+          let i = ToolModeClasses.indexOf(toolmode.constructor);
+          if (i < 0) {
+            console.warn("Missing tool mode " + toolmode.constructor.name, obj);
+            continue;
+          }
+
+          this.toolmodes[i] = toolmode;
+        }
+
+        this.toolmodes.active = obj.active;
+
+        /* Add any new modes. */
+        for (let i = 0; i < this.toolmodes.length; i++) {
+          if (this.toolmodes[i] === undefined) {
+            this.toolmodes[i] = new ToolModeClasses[i](this.ctx);
+          }
+        }
+
+        break;
+      }
+    }
+
+    window.redraw_all();
     return file;
   }
 
@@ -173,9 +277,11 @@ export class App extends simple.AppState {
 
   start() {
     super.start({
-      DEBUG: {
+      DEBUG    : {
         modalEvents: true
-      }
+      },
+      iconsheet: document.getElementById("iconsheet"),
+      icons    : Icons,
     });
 
     this.loadStartupFile();
@@ -206,7 +312,6 @@ export function start() {
       return;
     }
 
-    console.warn("redraw_all");
     animreq = requestAnimationFrame(f);
   }
 

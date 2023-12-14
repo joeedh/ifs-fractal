@@ -6,11 +6,11 @@ import {
   Vec3Property, Vec4Property, Vec2Property, FlagProperty, keymap
 } from '../path.ux/pathux.js';
 
-import {Vertex, MeshTypes, MeshFlags} from './mesh.js';
+import {Vertex, MeshTypes, MeshFlags, MeshVector} from './mesh.js';
 
 const VecProperty = (new Vertex()).length === 3 ? Vec3Property : Vec2Property;
-const Vector = (new Vertex()).length === 3 ? Vector3 : Vector2;
-const VectorSize = (new Vertex()).length;
+const Vector = MeshVector;
+const VectorSize = (new Vector()).length;
 
 export class TransformList extends Array {
   constructor(typeName, selmask) {
@@ -74,7 +74,7 @@ export class TransformVert extends TransformElem {
     super();
 
     this.v = v;
-    this.start = new Vector(v);
+    this.start = new Vector(v.co);
   }
 
   static create(mesh, selMask) {
@@ -105,7 +105,7 @@ export class TransformVert extends TransformElem {
       ret.push(td.v.eid);
 
       for (let i = 0; i < vlen; i++) {
-        ret.push(td.v[i]);
+        ret.push(td.v.co[i]);
       }
     }
 
@@ -125,7 +125,7 @@ export class TransformVert extends TransformElem {
       }
 
       for (let j = 0; j < VectorSize; j++) {
-        elem[j] = data[i + j + 1];
+        elem.co[j] = data[i + j + 1];
       }
     }
   }
@@ -144,8 +144,8 @@ export class TransformVert extends TransformElem {
   }
 
   apply(matrix) {
-    this.v.load(this.start);
-    this.v.multVecMatrix(matrix);
+    this.v.co.load(this.start);
+    this.v.co.multVecMatrix(matrix);
   }
 }
 

@@ -10,6 +10,49 @@ export * from './mesh_base.js';
 import {MeshFlags, MeshFeatures, MeshTypes} from './mesh_base.js';
 import {cubic, cubicOffsetDv, d2cubic, dcubic} from './bezier.js';
 
+export const MeshVector = Vector3;
+/*
+export class MeshVector {
+  #vec = [0, 0, 0]
+  length = 3
+
+  static STRUCT = nstructjs.inlineRegister(this, `
+MeshVector {
+  0 : float;
+  1 : float;
+  2 : float;
+}
+  `);
+
+  constructor(co) {
+    for (let i=0; i<this.length; i++) {
+    Object.defineProperty(this, i, {
+      get() {
+        return this.#vec[i]
+      },
+      set(v) {
+        if (isNaN(v)) {
+          debugger;
+        }
+
+        this.#vec[i] = v;
+      }
+    });
+    }
+
+    if (co) {
+      this.load(co);
+    }
+  }
+}
+for (let k of Reflect.ownKeys(BaseVector.prototype)) {
+  MeshVector.prototype[k] = BaseVector.prototype[k]
+}
+for (let k of Reflect.ownKeys(Vector3.prototype)) {
+  MeshVector.prototype[k] = Vector3.prototype[k]
+}
+*/
+
 const sel = [1, 0.8, 0, 1];
 const high = [1, 0.8, 0.7, 1]
 const act = [0, 0.3, 0.8, 1];
@@ -53,6 +96,14 @@ export function getElemColor(list, e) {
 }
 
 export class Element {
+  static STRUCT = nstructjs.inlineRegister(this, `
+mesh.Element {
+  type     : int;
+  flag     : int;
+  index    : int;
+  eid      : int;
+}`);
+
   constructor(type) {
     this.type = type;
     this.flag = this.index = 0;
@@ -72,90 +123,35 @@ export class Element {
     };
   }
 
-  loadJSON(obj) {
-    this.type = obj.type;
-    this.flag = obj.flag;
-    this.index = obj.index;
-    this.eid = obj.eid;
-
-    return this;
-  }
-}
-
-Element.STRUCT = `
-mesh.Element {
-  type     : int;
-  flag     : int;
-  index    : int;
-  eid      : int;
-}
-`;
-nstructjs.register(Element);
-
-function mixinVector3(cls) {
-  let parent = Vector3;
-  let lastparent;
-
-  while (parent && parent !== lastparent && parent.prototype) {
-    for (let k of Reflect.ownKeys(parent.prototype)) {
-      if (k === "buffer" || k === "byteLength" || k === "byteOffset" || k === "length") {
-        continue;
-      }
-
-      if (!cls.prototype[k]) {
-        try {
-          cls.prototype[k] = parent.prototype[k];
-        } catch (error) {
-          util.print_stack(error);
-          console.warn("Failed to inherit Vector prototype property " + k);
-          continue;
-        }
-      }
-    }
-
-    lastparent = parent;
-    parent = parent.__proto__;
-  }
-
-  cls.prototype.initVector3 = function () {
-    this.length = 3;
-    this[0] = this[1] = this[2] = 0.0;
-  }
-
-  cls.prototype.load = function (b) {
-    this[0] = b[0];
-    this[1] = b[1];
-    this[2] = b[2];
-
-    return this;
+  loadSTRUCT(reader) {
+    reader(this);
   }
 }
 
 //has Vector3 mixin
 export class Vertex extends Element {
+  static STRUCT = nstructjs.inlineRegister(this, `
+mesh.Vertex {
+  co          : ${MeshVector.structName};
+  edges       : array(e, int) | e.eid;
+}`);
+
   constructor(co) {
     super(MeshTypes.VERTEX);
-    this.initVector3();
-
-    if (co !== undefined) {
-      this.load(co);
-    }
-
+    this.co = new MeshVector(co);
     this.edges = [];
   }
 
-  toJSON() {
-    let edges = [];
-    for (let e of this.edges) {
-      edges.push(e.eid);
-    }
+  get 0() {
+    debugger;
+  }
 
-    return util.merge(super.toJSON(), {
-      0    : this[0],
-      1    : this[1],
-      2    : this[2],
-      edges: edges
-    });
+  get 1() {
+    debugger;
+  }
+
+  get 2() {
+    debugger;
   }
 
   otherEdge(e) {
@@ -169,78 +165,56 @@ export class Vertex extends Element {
       return this.edges[0];
   }
 
-  loadJSON(obj) {
-    super.loadJSON(obj);
-
-    this.edges = obj.edges;
-    this[0] = obj[0];
-    this[1] = obj[1];
-    this[2] = obj[2];
-
-    return this;
+  loadSTRUCT(reader) {
+    reader(this);
+    super.loadSTRUCT(reader);
   }
 }
 
-mixinVector3(Vertex);
-
-Vertex.STRUCT = nstructjs.inherit(Vertex, Element, "mesh.Vertex") + `
-  0           : float;
-  1           : float;
-  2           : float;
-  edges       : array(e, int) | e.eid;
-}
-`;
-nstructjs.register(Vertex);
-
 //has Vector3 mixin
 export class Handle extends Element {
+  static STRUCT = nstructjs.inlineRegister(this, `
+mesh.Handle {
+  co          : ${MeshVector.structName};
+  owner       : int | this.owner ? this.owner.eid : -1;
+}`);
+
   constructor(co) {
     super(MeshTypes.HANDLE);
-    this.initVector3();
+
+    this.co = new MeshVector;
 
     if (co !== undefined) {
-      this.load(co);
+      this.co.load(co);
     }
 
     this.owner = undefined;
   }
 
-  toJSON() {
-    return Object.assign({
-      0    : this[0],
-      1    : this[1],
-      owner: this.owner ? this.owner.eid : -1
-    }, super.toJSON());
+  get 0() {
+    debugger;
   }
 
-  loadJSON(obj) {
-    super.loadJSON(obj);
+  get 1() {
+    debugger;
+  }
 
-    this[0] = obj[0];
-    this[1] = obj[1];
-    this.owner = obj.owner;
+  get 2() {
+    debugger;
+  }
 
-    return this;
+  loadSTRUCT(reader) {
+    reader(this);
+    super.loadSTRUCT(reader);
   }
 }
 
-mixinVector3(Handle);
 
-Handle.STRUCT = nstructjs.inherit(Handle, Element, "mesh.Handle") + `
-  0           : float;
-  1           : float;
-  2           : float;
-  owner       : int | this.owner ? this.owner.eid : -1;
-}
-`;
-nstructjs.register(Handle);
-
-const Vector = (new Vertex()).length === 3 ? Vector3 : Vector2;
-const _evaluate_vs = util.cachering.fromConstructor(Vector, 64);
-const _offset_dvs = util.cachering.fromConstructor(Vector, 64);
-const _derivative_vs = util.cachering.fromConstructor(Vector, 64);
-const _derivative2_vs = util.cachering.fromConstructor(Vector, 64);
-const _normal_vs = util.cachering.fromConstructor(Vector, 64);
+const _evaluate_vs = util.cachering.fromConstructor(MeshVector, 64);
+const _offset_dvs = util.cachering.fromConstructor(MeshVector, 64);
+const _derivative_vs = util.cachering.fromConstructor(MeshVector, 64);
+const _derivative2_vs = util.cachering.fromConstructor(MeshVector, 64);
+const _normal_vs = util.cachering.fromConstructor(MeshVector, 64);
 
 export class Edge extends Element {
   constructor() {
@@ -277,21 +251,30 @@ export class Edge extends Element {
 
   evaluate(t) {
     const p = _evaluate_vs.next();
-    const {v1, h1, h2, v2} = this
 
-    for (let i = 0; i < p.length; i++) {
-      p[i] = cubic(v1[i], h1[i], h2[i], v2[i], t);
+    if (this.h1) {
+      const {v1, h1, h2, v2} = this
+
+      for (let i = 0; i < p.length; i++) {
+        p[i] = cubic(v1.co[i], h1.co[i], h2.co[i], v2.co[i], t);
+      }
+
+      return p;
+    } else {
+      return p.load(this.v1.co).interp(this.v2.co, t);
     }
-
-    return p;
   }
 
   derivative(t) {
     const p = _derivative_vs.next();
-    const {v1, h1, h2, v2} = this
+    if (this.h1) {
+      const {v1, h1, h2, v2} = this
 
-    for (let i = 0; i < p.length; i++) {
-      p[i] = dcubic(v1[i], h1[i], h2[i], v2[i], t);
+      for (let i = 0; i < p.length; i++) {
+        p[i] = dcubic(v1.co[i], h1.co[i], h2.co[i], v2.co[i], t);
+      }
+    } else {
+      return p.load(this.v2.co).sub(this.v1.co);
     }
 
     return p;
@@ -299,10 +282,15 @@ export class Edge extends Element {
 
   derivative2(t) {
     const p = _derivative2_vs.next();
-    const {v1, h1, h2, v2} = this
 
-    for (let i = 0; i < p.length; i++) {
-      p[i] = d2cubic(v1[i], h1[i], h2[i], v2[i], t);
+    if (this.h1) {
+      const {v1, h1, h2, v2} = this
+
+      for (let i = 0; i < p.length; i++) {
+        p[i] = d2cubic(v1.co[i], h1.co[i], h2.co[i], v2.co[i], t);
+      }
+    } else {
+      return p.zero();
     }
 
     return p;
@@ -318,8 +306,8 @@ export class Edge extends Element {
   }
 
   offsetDv(t, radius) {
-    let dv = cubicOffsetDv(this.v1, this.h1, this.h2, this.v2, t, radius);
-    return _offset_dvs.zero().loadXY(dv[0], dv[1]);
+    let dv = cubicOffsetDv(this.v1.co, this.h1.co, this.h2.co, this.v2.co, t, radius);
+    return _offset_dvs.next().zero().loadXY(dv[0], dv[1]);
   }
 
   curvature(t) {
@@ -331,36 +319,12 @@ export class Edge extends Element {
     return ret;
   }
 
-  toJSON() {
-    return util.merge(super.toJSON(), {
-      v1: this.v1.eid,
-      v2: this.v2.eid,
-
-      h1: this.h1 ? this.h1.eid : -1,
-      h2: this.h2 ? this.h2.eid : -1,
-      l : this.l ? this.l.eid : -1
-    });
-  }
-
   handle(v) {
     return v === this.v1 ? this.h1 : this.h2;
   }
 
   vertex(h) {
     return h === this.h1 ? this.v1 : this.v2;
-  }
-
-  loadJSON(obj) {
-    super.loadJSON(obj);
-
-    this.v1 = obj.v1;
-    this.v2 = obj.v2;
-
-    this.h1 = obj.h1;
-    this.h2 = obj.h2;
-    this.l = obj.l;
-
-    return this;
   }
 
   otherVertex(v) {
@@ -450,14 +414,14 @@ export class Loop extends Element {
     return this.e.derivative2(t).mulScalar(sign)
   }
 
-  offsetDv(t, radis) {
+  offsetDv(t, radius) {
     let sign = 1;
     if (this.v === this.e.v2) {
       t = 1.0 - t;
       sign = -1;
     }
 
-    return this.e.offsetDv(t).mulScalar(sign)
+    return this.e.offsetDv(t, radius).mulScalar(sign)
   }
 
   get h1() {
@@ -466,24 +430,6 @@ export class Loop extends Element {
 
   get h2() {
     return this.v === this.e.v1 ? this.e.h2 : this.e.h1;
-  }
-
-  loadJSON(obj) {
-    super.loadJSON(obj);
-
-    this.v = obj.v;
-    this.e = obj.e;
-    this.f = obj.f;
-
-    this.radial_next = obj.radial_next;
-    this.radial_prev = obj.radial_prev;
-
-    this.next = obj.next;
-    this.prev = obj.prev;
-
-    this.list = obj.list;
-
-    return this;
   }
 }
 
@@ -606,20 +552,6 @@ export class LoopList extends Element {
     })();
   }
 
-  toJSON() {
-    return Object.assign({
-      l: this.l.eid,
-    }, super.toJSON());
-  }
-
-  loadJSON(obj) {
-    super.loadJSON(obj);
-
-    this.l = obj.l;
-
-    return this;
-  }
-
   _save_loops() {
     return util.list(this).map(l => l.eid);
   }
@@ -720,21 +652,6 @@ class Face extends Element {
     }
 
     return this.center;
-  }
-
-  loadJSON(obj) {
-    super.loadJSON(obj);
-
-    this.center = new Vector3(obj.center);
-    if (isNaN(this.center[2])) {
-      this.center[2] = 0.0;
-    }
-
-    this.lists = obj.lists;
-    this.blur = obj.blur || 0.0;
-    this.fillColor = new Vector4(obj.fillColor);
-
-    return this;
   }
 }
 
@@ -918,58 +835,6 @@ export class ElementArray {
       active   : this.active !== undefined ? this.active.eid : -1,
       highlight: this.highlight !== undefined ? this.highlight.eid : -1
     };
-  }
-
-  loadJSON(obj) {
-    this.list.length = [];
-    this.length = 0;
-    this.freelist.length = 0;
-    this.selected = new util.set();
-    this.active = this.highlight = undefined;
-    this.type = obj.type;
-
-    for (let e of obj.array) {
-      let e2 = undefined;
-
-      switch (e.type) {
-        case MeshTypes.VERTEX:
-          e2 = new Vertex();
-          break;
-        case MeshTypes.HANDLE:
-          e2 = new Handle();
-          break;
-        case MeshTypes.EDGE:
-          e2 = new Edge();
-          break;
-        case MeshTypes.LOOP:
-          e2 = new Loop();
-          break;
-        case MeshTypes.LOOPLIST:
-          e2 = new LoopList();
-          break;
-        case MeshTypes.FACE:
-          e2 = new Face();
-          break;
-        default:
-          console.log(e);
-          throw new Error("bad element " + e);
-      }
-
-      e2.loadJSON(e);
-      e2._index = this.list.length;
-      this.list.push(e2);
-      this.length++;
-
-      if (e2.flag & MeshFlags.SELECT) {
-        this.selected.add(e2);
-      }
-
-      if (e2.eid === obj.active) {
-        this.active = e2;
-      } else if (e2.eid === obj.highlight) {
-        this.highlight = e2;
-      }
-    }
   }
 
   push(v) {
@@ -1168,7 +1033,7 @@ export class Mesh {
   }
 
   makeVertex(co) {
-    let v = new Vertex(co);
+    let v = new Vertex((co instanceof Vertex || co instanceof Handle) ? co.co : co);
 
     this._element_init(v);
     this.verts.push(v);
@@ -1209,12 +1074,12 @@ export class Mesh {
     e.v2 = v2;
 
     if (this.features & MeshFeatures.HANDLES) {
-      e.h1 = this.makeHandle(v1);
-      e.h1.interp(v2, 1.0/2.0);
+      e.h1 = this.makeHandle(v1.co);
+      e.h1.co.interp(v2.co, 1.0/2.0);
       e.h1.owner = e;
 
-      e.h2 = this.makeHandle(v1);
-      e.h2.interp(v2, 2.0/3.0);
+      e.h2 = this.makeHandle(v1.co);
+      e.h2.co.interp(v2.co, 2.0/3.0);
       e.h2.owner = e;
     }
 
@@ -1518,10 +1383,10 @@ export class Mesh {
       let dv2 = e.derivative(t).mulScalar(1.0/3.0);
       let dv3 = e.derivative(1.0).mulScalar(1.0/3.0);
 
-      e.h1.load(dv1).mulScalar(t).add(e.v1);
-      e.h2.load(dv2).mulScalar(-t).add(nv);
-      ne.h1.load(dv2).mulScalar(1.0 - t).add(ne.v1);
-      ne.h2.load(dv3).mulScalar(t - 1.0).add(ne.v2);
+      e.h1.co.load(dv1).mulScalar(t).add(e.v1.co);
+      e.h2.co.load(dv2).mulScalar(-t).add(nv.co);
+      ne.h1.co.load(dv2).mulScalar(1.0 - t).add(ne.v1.co);
+      ne.h2.co.load(dv3).mulScalar(t - 1.0).add(ne.v2.co);
     }
 
     e.v2.edges.remove(e);
@@ -1597,8 +1462,8 @@ export class Mesh {
     this.setSelect(dst, src.flag & MeshFlags.SELECT);
     dst.flag = src.flag;
 
-    if (dst instanceof Vertex) {
-      dst.load(src)
+    if (dst instanceof Vertex || dst instanceof Handle) {
+      dst.co.load(src.co)
     }
   }
 

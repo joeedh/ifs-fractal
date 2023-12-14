@@ -69,7 +69,6 @@ export function d2cubic(k1, k2, k3, k4, s) {
   return -6*(k1*s - k1 - 3*k2*s + 2*k2 + 3*k3*s - k3 - k4*s);
 }
 
-
 let offsetdvs = util.cachering.fromConstructor(Vector3, 64);
 
 export function cubicOffsetDv(a, b, c, d, s, radius) {
@@ -82,15 +81,23 @@ export function cubicOffsetDv(a, b, c, d, s, radius) {
   }
 
   let [dx, dy] = dv;
-  let [dx2, dy2] = dv;
+  let [dx2, dy2] = dv2;
   let sqrt = Math.sqrt;
 
   let ret = offsetdvs.next();
 
+  if (dx === 0.0 && dy === 0.0) {
+    return ret.load(d).sub(a);
+  }
+
+  const div = sqrt(dx**2 + dy**2)*(dx**2 + dy**2);
+
+  //console.log("dv", dx, dy, dx2, dy2, radius, s);
+
   ret[0] = ((sqrt(dx**2 + dy**2)*dx**2 + sqrt(dx**2 + dy**2)*dy**2 + dx*dy2*
-    radius - dx2*dy*radius)*dx)/(sqrt(dx**2 + dy**2)*(dx**2 + dy**2));
+    radius - dx2*dy*radius)*dx)/div;
   ret[1] = ((sqrt(dx**2 + dy**2)*dx**2 + sqrt(dx**2 + dy**2)*dy**2 + dx*dy2*
-    radius - dx2*dy*radius)*dy)/(sqrt(dx**2 + dy**2)*(dx**2 + dy**2));
+    radius - dx2*dy*radius)*dy)/div;
 
   return ret;
 }

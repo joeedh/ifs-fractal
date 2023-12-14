@@ -6,63 +6,36 @@ import {
   Vector4, UIBase, HotKey, haveModal, Vector2
 } from '../path.ux/scripts/pathux.js';
 
-import {getElemColor, MeshTypes, MeshFlags, MeshFeatures} from './mesh.js';
-import './mesh_ops.js';
-import './transform_ops.js';
-import './mesh_selectops.js';
+import {getElemColor, MeshTypes, MeshFlags, MeshFeatures} from '../core/mesh.js';
+import '../core/mesh_ops.js';
+import '../core/transform_ops.js';
+import '../core/mesh_selectops.js';
 
-import {SelToolModes} from './mesh_ops.js';
-
-export class ToolModeBase {
-  constructor(ctx) {
-    this.ctx = ctx;
-    this.keymap = new KeyMap()
-  }
-
-  getEditMenu() {
-    return [];
-  }
-
-  on_mousedown(localX, localY, e) {
-
-  }
-
-  on_mousemove(localX, localY, e) {
-
-  }
-
-  on_mouseup(localX, localY, e) {
-
-  }
-
-  draw() {
-
-  }
-
-  getKeymap() {
-    return this.keymap;
-  }
-}
-
-export class PickData {
-  constructor(elem, type, dist) {
-    this.elem = elem;
-    this.type = type;
-    this.dist = dist;
-  }
-
-  load(elem, type, dist) {
-    this.elem = elem;
-    this.type = type;
-    this.dist = dist;
-
-    return this;
-  }
-}
+import {SelToolModes} from '../core/mesh_ops.js';
+import {ToolModeBase, PickData} from './toolmode_base.js';
+import {Icons} from '../../assets/icon_enum.js';
 
 let pick_cachering = util.cachering.fromConstructor(PickData, 32);
 
 export class MeshEditor extends ToolModeBase {
+  static STRUCT = nstructjs.inlineRegister(this, `
+MeshToolMode {
+}
+  `);
+
+  static toolModeDef() {
+    return {
+      typeName   : "mesh",
+      uiName     : "Mesh",
+      icon       : Icons.TOOLMODE_MESH,
+      description: "Mesh tool",
+    }
+  }
+
+  static {
+    ToolModeBase.register(this);
+  }
+
   constructor(ctx) {
     super(ctx);
 
@@ -92,10 +65,11 @@ export class MeshEditor extends ToolModeBase {
 
   draw(ctx, canvas, g) {
     this.ctx = ctx;
+    this.constructor.drawMesh(ctx, canvas, g)
+  }
 
-    const drawControls = ctx.properties.drawControls;
-
-    let mesh = this.ctx.mesh;
+  static drawMesh(ctx, canvas, g, drawControls = ctx.properties.drawControls) {
+    let mesh = ctx.mesh;
 
     let w = 8;
     const haveHandles = mesh.haveHandles;
@@ -104,16 +78,16 @@ export class MeshEditor extends ToolModeBase {
       for (let e of mesh.edges.visible) {
         g.strokeStyle = color2css(getElemColor(mesh.edges, e));
         g.beginPath();
-        g.moveTo(e.v1[0], e.v1[1]);
-        g.lineTo(e.v2[0], e.v2[1]);
+        g.moveTo(e.v1.co[0], e.v1.co[1]);
+        g.lineTo(e.v2.co[0], e.v2.co[1]);
         g.stroke();
       }
     } else {
       for (let e of mesh.edges.visible) {
         g.strokeStyle = color2css(getElemColor(mesh.edges, e));
         g.beginPath();
-        g.moveTo(e.v1[0], e.v1[1]);
-        g.bezierCurveTo(e.h1[0], e.h1[1], e.h2[0], e.h2[1], e.v2[0], e.v2[1]);
+        g.moveTo(e.v1.co[0], e.v1.co[1]);
+        g.bezierCurveTo(e.h1.co[0], e.h1.co[1], e.h2.co[0], e.h2.co[1], e.v2.co[0], e.v2.co[1]);
         g.stroke();
       }
     }
@@ -124,8 +98,8 @@ export class MeshEditor extends ToolModeBase {
         let v = h.owner.vertex(h);
 
         g.beginPath();
-        g.moveTo(v[0], v[1]);
-        g.lineTo(h[0], h[1]);
+        g.moveTo(v.co[0], v.co[1]);
+        g.lineTo(h.co[0], h.co[1]);
         g.stroke();
       }
     }
@@ -140,7 +114,7 @@ export class MeshEditor extends ToolModeBase {
         for (let v of list.visible) {
           g.fillStyle = color2css(getElemColor(list, v));
           g.beginPath();
-          g.rect(v[0] - w*0.5, v[1] - w*0.5, w, w);
+          g.rect(v.co[0] - w*0.5, v.co[1] - w*0.5, w, w);
           g.fill();
         }
       }
@@ -154,14 +128,14 @@ export class MeshEditor extends ToolModeBase {
       g.fillStyle = color2css(color);
       for (let list of f.lists) {
         let l = list.l.prev;
-        g.moveTo(l.v[0], l.v[1]);
+        g.moveTo(l.v.co[0], l.v.co[1]);
 
         for (let l of list) {
           if (haveHandles) {
             let {h1, h2} = l.prev;
-            g.bezierCurveTo(h1[0], h1[1], h2[0], h2[1], l.v[0], l.v[1]);
+            g.bezierCurveTo(h1.co[0], h1.co[1], h2.co[0], h2.co[1], l.v.co[0], l.v.co[1]);
           } else {
-            g.lineTo(l.v[0], l.v[1]);
+            g.lineTo(l.v.co[0], l.v.co[1]);
           }
         }
 
@@ -170,62 +144,6 @@ export class MeshEditor extends ToolModeBase {
 
       g.fill();
     }
-  }
-
-  getEditMenu() {
-    let ret = [];
-
-    for (let hk in this.keymap) {
-      if (typeof hk === "string") {
-        ret.push(hk.action);
-      }
-    }
-
-    return ret;
-  }
-
-  pick(localX, localY, selmask = config.SELECTMASK, limit = 25) {
-    let mesh = this.ctx.mesh;
-
-    let mpos = new Vector3();
-    mpos[0] = localX;
-    mpos[1] = localY;
-    mpos[2] = 0.0;
-
-    let dpi = UIBase.getDPI();
-    limit *= dpi;
-
-    let mindis, minret;
-
-    let vlist = (list) => {
-      for (let v of list) {
-        if (v.flag & MeshFlags.HIDE) {
-          continue;
-        }
-
-        mpos[2] = v.length > 2 ? v[2] : 0.0;
-
-        let dis = v.vectorDistance(mpos);
-        if (dis >= limit) {
-          continue;
-        }
-
-        if (!minret || dis < mindis) {
-          mindis = dis;
-          minret = pick_cachering.next().load(v, v.type, dis);
-        }
-      }
-    }
-
-    if (selmask & MeshTypes.VERTEX) {
-      vlist(mesh.verts);
-    }
-
-    if (selmask & MeshTypes.HANDLE) {
-      vlist(mesh.handles);
-    }
-
-    return minret ? minret.elem : undefined;
   }
 
   on_mousedown(localX, localY, e) {
@@ -273,7 +191,11 @@ export class MeshEditor extends ToolModeBase {
   }
 
   updateHighlight(localX, localY) {
-    let elem = this.pick(localX, localY);
+    if (!this.ctx.workspace) {
+      return;
+    }
+    
+    let elem = this.ctx.workspace.pick(localX, localY);
     let mesh = this.ctx.mesh;
 
     let update = false;
@@ -322,5 +244,10 @@ export class MeshEditor extends ToolModeBase {
 
   on_mouseup(localX, localY, e) {
     this.mdown = false;
+  }
+
+  loadSTRUCT(reader) {
+    reader(this);
+    super.loadSTRUCT(reader);
   }
 }
