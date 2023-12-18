@@ -52,6 +52,7 @@ MeshToolMode {
       new HotKey("R", [], "transform.rotate()"),
       new HotKey("E", [], "mesh.split_edge()"),
       new HotKey("D", [], "mesh.dissolve_vertex()"),
+      new HotKey("D", ["SHIFT"], "mesh.duplicate(doTransform=true)"),
       new HotKey("X", [], "mesh.delete()"),
       new HotKey("Delete", [], "mesh.delete()"),
       new HotKey("L", [], "mesh.select_linked(pick=true mode='ADD')"),
@@ -194,7 +195,7 @@ MeshToolMode {
     if (!this.ctx.workspace) {
       return;
     }
-    
+
     let elem = this.ctx.workspace.pick(localX, localY);
     let mesh = this.ctx.mesh;
 

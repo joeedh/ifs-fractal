@@ -371,7 +371,7 @@ Workspace {
     }
 
     if (selmask & MeshTypes.FACE) {
-      let p2 = new MeshVector([-10000, -10000]);
+      let p2 = new MeshVector().addScalar(-10000);
 
       let steps = mesh.haveHandles ? 8 : 2;
 

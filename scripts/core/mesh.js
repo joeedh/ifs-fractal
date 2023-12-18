@@ -10,8 +10,8 @@ export * from './mesh_base.js';
 import {MeshFlags, MeshFeatures, MeshTypes} from './mesh_base.js';
 import {cubic, cubicOffsetDv, d2cubic, dcubic} from './bezier.js';
 
-export const MeshVector = Vector3;
-/*
+//export const MeshVector = Vector3;
+//*
 export class MeshVector {
   #vec = [0, 0, 0]
   length = 3
@@ -51,7 +51,7 @@ for (let k of Reflect.ownKeys(BaseVector.prototype)) {
 for (let k of Reflect.ownKeys(Vector3.prototype)) {
   MeshVector.prototype[k] = Vector3.prototype[k]
 }
-*/
+//*/
 
 const sel = [1, 0.8, 0, 1];
 const high = [1, 0.8, 0.7, 1]

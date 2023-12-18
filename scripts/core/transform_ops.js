@@ -8,7 +8,7 @@ import {
 
 import {Vertex, MeshTypes, MeshFlags, MeshVector} from './mesh.js';
 
-const VecProperty = (new Vertex()).length === 3 ? Vec3Property : Vec2Property;
+const VecProperty = (new Vertex()).co.length === 3 ? Vec3Property : Vec2Property;
 const Vector = MeshVector;
 const VectorSize = (new Vector()).length;
 
@@ -101,10 +101,9 @@ export class TransformVert extends TransformElem {
     let ret = [];
 
     for (let td of list) {
-      let vlen = td.v.length;
       ret.push(td.v.eid);
 
-      for (let i = 0; i < vlen; i++) {
+      for (let i = 0; i < VectorSize; i++) {
         ret.push(td.v.co[i]);
       }
     }

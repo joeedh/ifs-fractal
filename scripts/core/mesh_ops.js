@@ -4,10 +4,11 @@ import {
   Vector2, Vector3, Vector4, util, math,
   nstructjs, Matrix4, Quat, ToolOp,
   FloatProperty, BoolProperty, IntProperty,
-  EnumProperty, FlagProperty, Vec3Property
+  EnumProperty, FlagProperty, Vec3Property, ToolMacro
 } from '../path.ux/pathux.js';
 import {Mesh, MeshFlags, MeshTypes} from './mesh.js';
-import {vertexSmooth} from './mesh_utils.js';
+import {duplicate, vertexSmooth} from './mesh_utils.js';
+import {TranslateOp} from './transform_ops.js';
 
 export let SelToolModes = {
   ADD : 0,
@@ -108,7 +109,6 @@ export class DeleteOp extends MeshOp {
   static invoke(ctx, args) {
     let tool = super.invoke(ctx, args);
 
-    console.log("DELETE", ctx.selMask, ctx);
     if (!("selMask" in args)) {
       tool.inputs.selMask.setValue(ctx.selMask);
     }
@@ -403,3 +403,62 @@ export class ReverseEdgeOp extends MeshOp {
 }
 
 ToolOp.register(ReverseEdgeOp);
+
+
+export class DuplicateOp extends MeshOp {
+  static tooldef() {
+    return {
+      uiname  : "Duplicate",
+      toolpath: "mesh.duplicate",
+      inputs  : ToolOp.inherit({
+        doTransform: new BoolProperty(true)
+      })
+    }
+  }
+
+  static invoke(ctx, args) {
+    let tool = super.invoke(ctx, args);
+
+    if (tool.inputs.doTransform.getValue()) {
+      let macro = new ToolMacro()
+      macro.add(tool)
+      macro.add(new TranslateOp())
+      return macro;
+    }
+
+    return tool;
+  }
+
+  exec(ctx) {
+    let mesh = ctx.mesh;
+
+    let geom = new Set([
+      Array.from(mesh.verts.selected.editable),
+      Array.from(mesh.edges.selected.editable),
+      Array.from(mesh.faces.selected.editable)
+    ].flat())
+
+    let {oldNewMap} = duplicate(mesh, geom);
+
+    for (let elist of mesh.getElists()) {
+      if (!elist.active) {
+        continue;
+      }
+
+      let newact = oldNewMap.get(elist.active)
+      if (newact) {
+        elist.active = newact;
+      }
+    }
+
+    for (let elem of geom) {
+      if (elem.type === MeshTypes.EDGE && elem.h1) {
+        mesh.setSelect(elem.h1, false);
+        mesh.setSelect(elem.h2, false);
+      }
+      mesh.setSelect(elem, false)
+    }
+  }
+}
+
+ToolOp.register(DuplicateOp);

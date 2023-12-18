@@ -249,7 +249,7 @@ export class SelectLinked extends SelectOpBase {
 
     if (tool.inputs.pick.getValue()) {
       let workspace = ctx.workspace;
-      let elem = workspace.toolmode.pick(workspace.mpos[0], workspace.mpos[1], tool.inputs.selMask.getValue());
+      let elem = workspace.pick(workspace.mpos[0], workspace.mpos[1], tool.inputs.selMask.getValue());
 
       if (elem) {
         switch (elem.type) {
