@@ -1,11 +1,17 @@
 {
   "type": "module",
   "scripts": {
-    "setup": "git submodule init && git submodule foreach git submodule init && git submodule foreach git submodule update"
+    "setup": "git submodule init && git submodule foreach git submodule init && git submodule foreach git submodule update",
+    "watch": "node esbuilder.js --watch",
+    "typecheck": "tsc --watch"
   },
   "devDependencies": {
+    "@pathtx/prettier": "^3.3.0-dev",
+    "@typescript-eslint/eslint-plugin": "^6.19.1",
     "acorn": "^8.11.2",
     "acorn-walk": "^8.3.0",
-    "@pathtx/prettier": "^3.3.0-dev"
+    "esbuild": "^0.24.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.6.3"
   }
 }
