@@ -165,10 +165,6 @@ Workspace {
   init() {
     super.init();
 
-    if (config.DRAW_TEST_IMAGES) {
-      this.ctx.state.testImages.makeUI(sidebar, "testImages");
-    }
-
     let header = this.header;
     let row;
 
@@ -205,6 +201,10 @@ Workspace {
 
     let tab;
     tab = sidebar.tab("Options");
+
+    if (config.DRAW_TEST_IMAGES) {
+      this.ctx.state.testImages.makeUI(tab, "testImages");
+    }
 
     let props = UIBase.createElement("props-bag-editor-x");
     props.setAttribute("datapath", "properties");

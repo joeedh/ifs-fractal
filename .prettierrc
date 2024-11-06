@@ -1,10 +1,8 @@
 {
+  "alignPropertyValues": "group",
+  "semi": false,
   "trailingComma": "es5",
+  "singleQuote": true,
   "tabWidth": 2,
-  "semi": true,
-  "singleQuote": false,
-  "quoteProps": "preserve",
-  "endOfLine": "crlf",
-  "parser": "babel",
-  "XXXplugins": ["./prettier-format-extra.mjs"]
+  "bracketSpacing": false
 }
