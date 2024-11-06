@@ -17941,6 +17941,7 @@ var StartArgs = class {
   }
   constructor() {
     this.singlePage = true;
+    this.DEBUG = {};
     this.icons = Icons3;
     this.iconsheet = void 0;
     this.iconSizes = [16, 24, 32, 48];
@@ -18306,14 +18307,14 @@ var SimpleContext = class {
 setNotifier(ui_noteframe_exports);
 
 // scripts/core/mesh_base.ts
-var MeshTypes = /* @__PURE__ */ ((MeshTypes2) => {
-  MeshTypes2[MeshTypes2["VERTEX"] = 1] = "VERTEX";
-  MeshTypes2[MeshTypes2["EDGE"] = 2] = "EDGE";
-  MeshTypes2[MeshTypes2["HANDLE"] = 4] = "HANDLE";
-  MeshTypes2[MeshTypes2["LOOP"] = 8] = "LOOP";
-  MeshTypes2[MeshTypes2["LOOPLIST"] = 16] = "LOOPLIST";
-  MeshTypes2[MeshTypes2["FACE"] = 32] = "FACE";
-  return MeshTypes2;
+var MeshTypes = /* @__PURE__ */ ((MeshTypes3) => {
+  MeshTypes3[MeshTypes3["VERTEX"] = 1] = "VERTEX";
+  MeshTypes3[MeshTypes3["EDGE"] = 2] = "EDGE";
+  MeshTypes3[MeshTypes3["HANDLE"] = 4] = "HANDLE";
+  MeshTypes3[MeshTypes3["LOOP"] = 8] = "LOOP";
+  MeshTypes3[MeshTypes3["LOOPLIST"] = 16] = "LOOPLIST";
+  MeshTypes3[MeshTypes3["FACE"] = 32] = "FACE";
+  return MeshTypes3;
 })(MeshTypes || {});
 var MeshFlags = /* @__PURE__ */ ((MeshFlags2) => {
   MeshFlags2[MeshFlags2["NONE"] = 0] = "NONE";
@@ -19764,7 +19765,7 @@ var Mesh = class {
     }
   }
   regen_render() {
-    globalThis.redraw_all();
+    window.redraw_all();
   }
   loadSTRUCT(reader) {
     reader(this);
@@ -20149,19 +20150,19 @@ Workspace {
 };
 simple_exports.Editor.register(Workspace);
 
-// scripts/core/property_templ.js
+// scripts/core/property_templ.ts
 var PropTypeMap = {
-  "float": PropTypes.FLOAT,
-  "int": PropTypes.INT,
-  "vec2": PropTypes.VEC2,
-  "vec3": PropTypes.VEC3,
-  "vec4": PropTypes.VEC4,
-  "color3": PropTypes.VEC3,
-  "color4": PropTypes.VEC4,
-  "string": PropTypes.STRING,
-  "enum": PropTypes.ENUM,
-  "flags": PropTypes.FLAG,
-  "bool": PropTypes.BOOL
+  float: PropTypes.FLOAT,
+  int: PropTypes.INT,
+  vec2: PropTypes.VEC2,
+  vec3: PropTypes.VEC3,
+  vec4: PropTypes.VEC4,
+  color3: PropTypes.VEC3,
+  color4: PropTypes.VEC4,
+  string: PropTypes.STRING,
+  enum: PropTypes.ENUM,
+  flags: PropTypes.FLAG,
+  bool: PropTypes.BOOL
 };
 for (let k in PropTypeMap) {
   if (k !== "color3" && k !== "color4") {
@@ -20170,24 +20171,35 @@ for (let k in PropTypeMap) {
 }
 var idgen = 0;
 var PropertiesBag = class {
-  static {
-    __name(this, "PropertiesBag");
-  }
   constructor(template) {
+    //these two are used by props widget to detect updates
+    this._updateGen = 0;
+    this._id = idgen++;
     this._props = [];
     this._struct = new DataStruct();
     this.sourceTemplate = {};
-    this._updateGen = 0;
-    this._id = idgen++;
     if (template) {
       this.loadTemplate(template);
     }
+  }
+  static {
+    __name(this, "PropertiesBag");
+  }
+  static {
+    this.STRUCT = struct_default.inlineRegister(this, `
+    PropertiesBag {
+      _props : array(abstract(ToolProperty)) | this._save();
+    }
+  `);
   }
   static defineAPI(api, st) {
     api.mapStructCustom(this, this.getStruct.bind(this));
   }
   static getStruct(obj) {
     return obj._struct;
+  }
+  get asFullyTypedBag() {
+    return this;
   }
   _getTemplValue(item) {
     let val = item.value;
@@ -20233,8 +20245,9 @@ var PropertiesBag = class {
       if (typeof item !== "object") {
         item = { type: item };
       }
-      if (this[k] === void 0) {
-        this[k] = this._getTemplValue(item);
+      const genericThis = this;
+      if (genericThis[k] === void 0) {
+        genericThis[k] = this._getTemplValue(item);
       }
     }
     let st = this._struct;
@@ -20244,7 +20257,7 @@ var PropertiesBag = class {
       if (typeof item !== "object") {
         item = { type: item };
       }
-      let uiname = item.uiName ?? ToolProperty.makeUIName(k);
+      let uiname = item.uiName ?? ToolProperty2.makeUIName(k);
       let descr = item.description ?? "";
       let def;
       if (item.type === "float") {
@@ -20270,6 +20283,10 @@ var PropertiesBag = class {
       } else if (item.type === "bool") {
         def = st.bool(k, k, uiname, descr);
       }
+      if (def === void 0) {
+        console.warn("properties template error", k, item);
+        continue;
+      }
       if (item.type === "enum" || item.type === "flags") {
         if ("checkStrip" in item) {
           def.checkStrip(item.checkStrip);
@@ -20288,35 +20305,37 @@ var PropertiesBag = class {
       let numberTypes = pr.FLOAT | pr.INT | pr.VEC2 | pr.VEC3 | pr.VEC4;
       def.data.apiname = k;
       if (def.data.type & numberTypes) {
-        def.data.baseUnit = def.data.displayUnit = "none";
+        const numberCast = def.data;
+        numberCast.baseUnit = numberCast.displayUnit = "none";
         for (let key of NumberConstraints) {
           if (key in item) {
-            def.data[key] = item[key];
+            ;
+            numberCast[key] = item[key];
           }
         }
         if (item.slider) {
           def.simpleSlider();
         }
         if ("unit" in item) {
-          def.data.baseUnit = def.data.displayUnit = item.unit;
+          numberCast.baseUnit = numberCast.displayUnit = item.unit;
         }
         if ("min" in item) {
-          def.data.range[0] = item.min;
+          numberCast.range[0] = item.min;
         }
         if ("max" in item) {
-          def.data.range[1] = item.max;
+          numberCast.range[1] = item.max;
         }
         if ("uiMin" in item) {
-          if (!def.data.uiRange) {
-            def.data.uiRange = util_exports.list(def.data.range);
+          if (!numberCast.uiRange) {
+            numberCast.uiRange = Array.from(numberCast.range);
           }
-          def.data.uiRange[0] = item.uiMin;
+          numberCast.uiRange[0] = item.uiMin;
         }
         if ("uiMax" in item) {
-          if (!def.data.uiRange) {
-            def.data.uiRange = util_exports.list(def.data.range);
+          if (!numberCast.uiRange) {
+            numberCast.uiRange = Array.from(numberCast.range);
           }
-          def.data.uiRange[1] = item.uiMax;
+          numberCast.uiRange[1] = item.uiMax;
         }
       }
     }
@@ -20347,18 +20366,19 @@ var PropertiesBag = class {
       let pr = PropTypes;
       let numberTypes = pr.FLOAT | pr.INT | pr.VEC2 | pr.VEC3 | pr.VEC4;
       if (prop.type & numberTypes) {
+        const numProp = prop;
         for (let key of NumberConstraints) {
           if (prop[key] === void 0) {
             continue;
           }
           if (key === "range") {
-            [item.min, item.max] = prop.range;
+            ;
+            [item.min, item.max] = numProp.range;
           } else if (key === "uiRange") {
-            [item.uiMin, item.uiMax] = prop.uiRange;
-          } else if (key === "unit") {
-            item.baseUnit = item.displayUnit = prop[key];
+            ;
+            [item.uiMin, item.uiMax] = numProp.uiRange;
           } else {
-            item[key] = prop[key];
+            item[key] = numProp[key];
           }
         }
       }
@@ -20389,20 +20409,15 @@ var PropertiesBag = class {
     return obj;
   }
 };
-PropertiesBag.STRUCT = `
-PropertiesBag {
-  _props : array(abstract(ToolProperty)) | this._save();
-}
-`;
 simple_exports.DataModel.register(PropertiesBag);
 var PropsEditor = class extends Container {
-  static {
-    __name(this, "PropsEditor");
-  }
   constructor() {
     super();
     this.needsRebuild = true;
-    this._last_update_key = void 0;
+    this._last_update_key = "";
+  }
+  static {
+    __name(this, "PropsEditor");
   }
   static define() {
     return {
@@ -20438,26 +20453,26 @@ var PropsEditor = class extends Container {
     this.dataPrefix = path;
     this.clear();
     console.log("Columns", cols);
-    cols = new Array(cols).fill(1).map((c) => this.col());
+    const cols2 = new Array(cols).fill(1).map((c) => this.col());
     let i = 0;
     let templ = props.sourceTemplate;
-    let rec = /* @__PURE__ */ __name((obj, cols2) => {
+    let rec = /* @__PURE__ */ __name((obj, cols3) => {
       for (let k in obj) {
         let v = obj[k];
         if (k === "type" && v === "panel") {
           continue;
         }
-        let ci = i++ % cols2.length;
+        let ci = i++ % cols3.length;
         if (typeof v === "object" && v.type === "panel") {
-          let panel = cols2[ci].panel(ToolProperty.makeUIName(k));
-          let cols22 = new Array(cols2).fill(1).map((c) => panel.col());
+          let panel = cols3[ci].panel(ToolProperty2.makeUIName(k));
+          let cols22 = new Array(cols3.length).fill(1).map((c) => panel.col());
           rec(v, cols22);
           continue;
         }
-        cols2[ci].prop(k);
+        cols3[ci].prop(k);
       }
     }, "rec");
-    rec(templ, cols);
+    rec(templ, cols2);
     loadUIData(this, uidata);
   }
   update() {
@@ -21838,8 +21853,66 @@ var SelectLinked = class extends SelectOpBase {
 };
 ToolOp.register(SelectLinked);
 
-// scripts/core/context.js
+// scripts/core/toolModeSet.ts
+var ToolModeSet = class extends Array {
+  constructor() {
+    super();
+    this.active = void 0;
+    this.activeIndex = 0;
+    Object.defineProperty(this, "activeIndex", {
+      get() {
+        return this.indexOf(this.active);
+      },
+      set(i) {
+        this.active = this[i];
+      }
+    });
+  }
+  static {
+    __name(this, "ToolModeSet");
+  }
+  static {
+    this.STRUCT = struct_default.inlineRegister(
+      this,
+      `
+ToolModeSet {
+  this        : array(abstract(ToolModeBase));
+  activeIndex : int; 
+}
+  `
+    );
+  }
+  loadSTRUCT(reader) {
+    reader(this);
+  }
+  push(...toolmodes) {
+    for (let toolmode of toolmodes) {
+      if (this.active === void 0) {
+        this.active = toolmode;
+      }
+    }
+    return super.push(...toolmodes);
+  }
+  /* Okay now this is the weirdest bug ever, get/setters are broken on Array subclasses?*/
+  /*
+    get activeIndex() {
+      return this.length > 0 ? this.indexOf(this.active) : 0;
+    }
+  
+    set activeIndex(i) {
+      console.warn("setting active", i, this[i])
+      this.active = this[i];
+    }
+    */
+  static defineAPI(api, st) {
+    st.enum("activeIndex", "activeIndex", ToolModeBase.makeEnumProp()).on("change", () => window.redraw_all());
+    return st;
+  }
+};
+
+// scripts/core/context.ts
 ToolOp.prototype.undoPre = function(ctx) {
+  ;
   this._undo = ctx.state.saveFileSync({
     doScreen: false
   });
@@ -21852,7 +21925,7 @@ ToolOp.prototype.undo = function(ctx) {
     resetOnLoad: false
   });
 };
-var Context2 = class {
+var Context3 = class {
   static {
     __name(this, "Context");
   }
@@ -21868,8 +21941,17 @@ var Context2 = class {
   get mesh() {
     return this.state.mesh;
   }
+  get api() {
+    return this.state.api;
+  }
+  get screen() {
+    return this.state.screen;
+  }
   get properties() {
-    return this.state.properties;
+    return this.state.properties.asFullyTypedBag;
+  }
+  get toolstack() {
+    return this.state.toolstack;
   }
   get testImages() {
     return this.state.testImages;
@@ -21930,6 +22012,18 @@ var Icons4 = {
   LARGE_X: 28,
   TOOLMODE_MESH: 29,
   BRUSH: 30
+};
+
+// scripts/core/properties.ts
+var Properties = {
+  drawControls: { type: "bool", value: true },
+  steps: { type: "int", value: 1, min: 0, max: 10, slideSpeed: 5 },
+  boolVal: { type: "bool", value: true },
+  panel: {
+    type: "panel",
+    float: { type: "float", value: 0, min: 0, max: 10, step: 0.05, decimalPlaces: 3 },
+    slider: { type: "float", slider: true, value: 0, min: 0, max: 10, step: 0.05, decimalPlaces: 3 }
+  }
 };
 
 // scripts/toolmode/toolmode_mesh.js
@@ -22170,19 +22264,9 @@ PenToolMode {
   }
 };
 
-// scripts/core/app.js
+// scripts/core/app.ts
 struct_default.setWarningMode(0);
 var STARTUP_FILE_KEY = "_startup_file_1";
-var Properties = {
-  drawControls: { type: "bool", value: true },
-  steps: { type: "int", value: 1, min: 0, max: 10, slideSpeed: 5 },
-  boolVal: { type: "bool", value: true },
-  panel: {
-    type: "panel",
-    float: { type: "float", value: 0, min: 0, max: 10, step: 0.05, decimalPlaces: 3 },
-    slider: { type: "float", slider: true, value: 0, min: 0, max: 10, step: 0.05, decimalPlaces: 3 }
-  }
-};
 var TestImages = {
   imageColumns: 2,
   singletonMode: false,
@@ -22200,78 +22284,25 @@ window.addEventListener("contextmenu", (e) => {
   console.log(e);
   if (window._appstate && _appstate.screen) {
     let elem2 = _appstate.screen.pickElement(e.x, e.y);
-    if (elem2 instanceof TextBoxBase || elem2.tagName === "INPUT") {
+    if (elem2 !== void 0 && (elem2 instanceof TextBoxBase || elem2.tagName === "INPUT")) {
       return;
     }
   }
   e.preventDefault();
 });
-var ToolModeSet = class extends Array {
-  static {
-    __name(this, "ToolModeSet");
-  }
-  active = void 0;
-  activeIndex = 0;
-  static STRUCT = struct_default.inlineRegister(
-    this,
-    `
-ToolModeSet {
-  this        : array(abstract(ToolModeBase));
-  activeIndex : int; 
-}
-  `
-  );
-  loadSTRUCT(reader) {
-    reader(this);
-  }
-  push(...toolmodes) {
-    for (let toolmode of toolmodes) {
-      if (this.active === void 0) {
-        this.active = toolmode;
-      }
-    }
-    return super.push(...toolmodes);
-  }
-  /* Okay now this is the weirdest bug ever, get/setters are broken on Array subclasses?*/
-  /*
-    get activeIndex() {
-      return this.length > 0 ? this.indexOf(this.active) : 0;
-    }
-  
-    set activeIndex(i) {
-      console.warn("setting active", i, this[i])
-      this.active = this[i];
-    }
-    */
-  static defineAPI(api, st) {
-    st.enum("activeIndex", "activeIndex", ToolModeBase.makeEnumProp()).on("change", () => window.redraw_all());
-    return st;
-  }
-  constructor() {
-    super();
-    Object.defineProperty(this, "activeIndex", {
-      get() {
-        return this.indexOf(this.active);
-      },
-      set(i) {
-        this.active = this[i];
-      }
-    });
-  }
-};
 var App = class extends simple_exports.AppState {
-  static {
-    __name(this, "App");
-  }
+  // XXX
   constructor() {
-    super(Context2);
-    this.mesh = void 0;
-    this.properties = void 0;
+    super(Context3);
+    this.toolmodes = new ToolModeSet();
+    this.testImages = new ImageWrangler(TestImages);
     this.toolmodes = new ToolModeSet();
     this.createNewFile(true);
     this.saveFilesInJSON = true;
     let dimen = 128;
-    this.testImages = new ImageWrangler(TestImages);
+  }
+  static {
+    __name(this, "App");
   }
   get toolmode() {
     return this.toolmodes.active;
@@ -22285,10 +22316,10 @@ var App = class extends simple_exports.AppState {
     this.mesh = new Mesh();
     let s = 50;
     let d = 200;
-    let v1 = this.mesh.makeVertex([s, s, 0]);
-    let v2 = this.mesh.makeVertex([s, s + d, 0]);
-    let v3 = this.mesh.makeVertex([s + d, s + d, 0]);
-    let v4 = this.mesh.makeVertex([s + d, s, 0]);
+    let v1 = this.mesh.makeVertex(new Vector3([s, s, 0]));
+    let v2 = this.mesh.makeVertex(new Vector3([s, s + d, 0]));
+    let v3 = this.mesh.makeVertex(new Vector3([s + d, s + d, 0]));
+    let v4 = this.mesh.makeVertex(new Vector3([s + d, s, 0]));
     this.mesh.makeFace([v1, v2, v3, v4]);
     this.toolmodes = new ToolModeSet();
     for (let cls of ToolModeClasses) {
@@ -22297,9 +22328,9 @@ var App = class extends simple_exports.AppState {
   }
   saveStartupFile() {
     this.saveFile().then((json) => {
-      json = JSON.stringify(json);
-      localStorage[STARTUP_FILE_KEY] = json;
-      console.log("Saved startup file", (json.length / 1024).toFixed(2) + "kb");
+      const buf2 = JSON.stringify(json);
+      localStorage[STARTUP_FILE_KEY] = buf2;
+      console.log("Saved startup file", (buf2.length / 1024).toFixed(2) + "kb");
     });
   }
   loadStartupFile() {
@@ -22324,12 +22355,12 @@ var App = class extends simple_exports.AppState {
     }
     return super.saveFileSync(this.getFileObjects(), args);
   }
-  saveFile(args = {}) {
+  saveFile(args = new FileArgs()) {
     return new Promise((accept, reject) => {
       accept(this.saveFileSync(this.getFileObjects(), args));
     });
   }
-  loadFileSync(data, args = {}) {
+  loadFileSync(data, args = new FileArgs()) {
     if (args.useJSON === void 0) {
       args.useJSON = true;
     }
@@ -22368,7 +22399,7 @@ var App = class extends simple_exports.AppState {
     window.redraw_all();
     return file;
   }
-  loadFile(data, args = {}) {
+  loadFile(data, args = new FileArgs()) {
     return new Promise((accept, reject) => {
       accept(this.loadFileSync(data, args));
     });
@@ -22376,6 +22407,7 @@ var App = class extends simple_exports.AppState {
   draw() {
     for (let sarea of this.screen.sareas) {
       if (sarea.area && sarea.area.draw) {
+        ;
         sarea.area.draw();
       }
     }
@@ -22427,7 +22459,6 @@ __name(start, "start");
 var a = 1;
 export {
   App,
-  Properties,
   STARTUP_FILE_KEY,
   TestImages,
   ToolModeSet,

@@ -18,6 +18,7 @@ import {MeshFlags, MeshFeatures, MeshTypes} from './mesh_base'
 import {cubic, cubicOffsetDv, d2cubic, dcubic} from './bezier.js'
 import {StructReader} from '../path.ux/scripts/path-controller/types/util/nstructjs.js'
 import {IDGen} from '../path.ux/scripts/path-controller/types/util/util.js'
+import './redraw_all.d.ts'
 
 export const MeshVector = Vector3
 export type MeshVector = Vector3
@@ -1738,7 +1739,7 @@ export class Mesh {
   }
 
   regen_render() {
-    globalThis.redraw_all()
+    window.redraw_all()
   }
 
   loadSTRUCT(reader: StructReader<this>) {
