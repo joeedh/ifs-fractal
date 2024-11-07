@@ -22202,7 +22202,7 @@ MeshToolMode {
     }
   }
   updateHighlight(localX, localY) {
-    if (!this.ctx.workspace) {
+    if (this.ctx?.workspace === void 0) {
       return;
     }
     let elem2 = this.ctx.workspace.pick(localX, localY);

@@ -226,7 +226,7 @@ MeshToolMode {
   }
 
   updateHighlight(localX: number, localY: number) {
-    if (!this.ctx.workspace) {
+    if (this.ctx?.workspace === undefined) {
       return
     }
 
