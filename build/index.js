@@ -18307,14 +18307,14 @@ var SimpleContext = class {
 setNotifier(ui_noteframe_exports);
 
 // scripts/core/mesh_base.ts
-var MeshTypes = /* @__PURE__ */ ((MeshTypes3) => {
-  MeshTypes3[MeshTypes3["VERTEX"] = 1] = "VERTEX";
-  MeshTypes3[MeshTypes3["EDGE"] = 2] = "EDGE";
-  MeshTypes3[MeshTypes3["HANDLE"] = 4] = "HANDLE";
-  MeshTypes3[MeshTypes3["LOOP"] = 8] = "LOOP";
-  MeshTypes3[MeshTypes3["LOOPLIST"] = 16] = "LOOPLIST";
-  MeshTypes3[MeshTypes3["FACE"] = 32] = "FACE";
-  return MeshTypes3;
+var MeshTypes = /* @__PURE__ */ ((MeshTypes5) => {
+  MeshTypes5[MeshTypes5["VERTEX"] = 1] = "VERTEX";
+  MeshTypes5[MeshTypes5["EDGE"] = 2] = "EDGE";
+  MeshTypes5[MeshTypes5["HANDLE"] = 4] = "HANDLE";
+  MeshTypes5[MeshTypes5["LOOP"] = 8] = "LOOP";
+  MeshTypes5[MeshTypes5["LOOPLIST"] = 16] = "LOOPLIST";
+  MeshTypes5[MeshTypes5["FACE"] = 32] = "FACE";
+  return MeshTypes5;
 })(MeshTypes || {});
 var MeshFlags = /* @__PURE__ */ ((MeshFlags2) => {
   MeshFlags2[MeshFlags2["NONE"] = 0] = "NONE";
@@ -18322,10 +18322,10 @@ var MeshFlags = /* @__PURE__ */ ((MeshFlags2) => {
   MeshFlags2[MeshFlags2["HIDE"] = 2] = "HIDE";
   return MeshFlags2;
 })(MeshFlags || {});
-var MeshFeatures = /* @__PURE__ */ ((MeshFeatures2) => {
-  MeshFeatures2[MeshFeatures2["NONE"] = 0] = "NONE";
-  MeshFeatures2[MeshFeatures2["HANDLES"] = 1] = "HANDLES";
-  return MeshFeatures2;
+var MeshFeatures = /* @__PURE__ */ ((MeshFeatures3) => {
+  MeshFeatures3[MeshFeatures3["NONE"] = 0] = "NONE";
+  MeshFeatures3[MeshFeatures3["HANDLES"] = 1] = "HANDLES";
+  return MeshFeatures3;
 })(MeshFeatures || {});
 
 // scripts/config/config.js
@@ -18338,17 +18338,22 @@ var config_default = {
   DRAW_TEST_IMAGES: false
 };
 
-// scripts/toolmode/toolmode_base.js
+// scripts/toolmode/toolmode_base.ts
 var ToolModeClasses = [];
 var ToolModeBase = class extends simple_exports.DataModel {
   static {
     __name(this, "ToolModeBase");
   }
-  static STRUCT = struct_default.inlineRegister(this, `
+  static {
+    this.STRUCT = struct_default.inlineRegister(
+      this,
+      `
 ToolModeBase {
   sideBarUIData : string;
 }
-  `);
+  `
+    );
+  }
   static toolModeDef() {
     return {
       uiName: "",
@@ -18374,7 +18379,7 @@ ToolModeBase {
       let def = cls.toolModeDef();
       let key = def.typeName;
       enumdef[key] = i;
-      uinames[key] = def.uiName ?? ToolProperty.makeUIName(key);
+      uinames[key] = def.uiName ?? ToolProperty2.makeUIName(key);
       icons[key] = def.icon ?? -1;
       descr[key] = def.description ?? "";
       i++;
@@ -18403,8 +18408,8 @@ ToolModeBase {
   }
   getEditMenu() {
     let ret = [];
-    for (let hk in this.keymap) {
-      if (typeof hk === "string") {
+    for (let hk of this.keymap) {
+      if (typeof hk.action === "string") {
         ret.push(hk.action);
       }
     }
@@ -18436,9 +18441,15 @@ var PickData = class {
     __name(this, "PickData");
   }
   constructor(elem2, type, dist) {
-    this.elem = elem2;
-    this.type = type;
-    this.dist = dist;
+    if (elem2 !== void 0) {
+      this.elem = elem2;
+    }
+    if (type !== void 0) {
+      this.type = type;
+    }
+    if (dist !== void 0) {
+      this.dist = dist;
+    }
   }
   load(elem2, type, dist) {
     this.elem = elem2;
@@ -18508,11 +18519,7 @@ var ElemColors = [
   //110  6 Highlight+Active
   new Vector4(high).add(sel).add(actsel).mulScalar(0.3333)
   //111  7 Highlight+Select+Active
-];
-for (let i = 0; i < ElemColors.length; i++) {
-  ElemColors[i] = new Vector4(ElemColors[i]);
-}
-console.log(ElemColors);
+].map((color) => new Vector4(color));
 function getElemColor(list4, e) {
   let mask = 0;
   if (e.flag & 1 /* SELECT */) {
@@ -18527,7 +18534,7 @@ function getElemColor(list4, e) {
   return ElemColors[mask];
 }
 __name(getElemColor, "getElemColor");
-var Element = class {
+var Element2 = class {
   static {
     __name(this, "Element");
   }
@@ -18564,7 +18571,7 @@ mesh.Element {
     reader(this);
   }
 };
-var Vertex = class extends Element {
+var Vertex = class extends Element2 {
   static {
     __name(this, "Vertex");
   }
@@ -18608,7 +18615,7 @@ mesh.Vertex {
     this.co = new MeshVector(this.co);
   }
 };
-var Handle = class extends Element {
+var Handle = class extends Element2 {
   static {
     __name(this, "Handle");
   }
@@ -18653,7 +18660,7 @@ var _offset_dvs = util_exports.cachering.fromConstructor(MeshVector, 64);
 var _derivative_vs = util_exports.cachering.fromConstructor(MeshVector, 64);
 var _derivative2_vs = util_exports.cachering.fromConstructor(MeshVector, 64);
 var _normal_vs = util_exports.cachering.fromConstructor(MeshVector, 64);
-var Edge = class extends Element {
+var Edge = class extends Element2 {
   static {
     __name(this, "Edge");
   }
@@ -18685,7 +18692,14 @@ var Edge = class extends Element {
     if (this.h1) {
       const { v1, h1, h2, v2 } = this;
       for (let i = 0; i < p.length; i++) {
-        p[i] = cubic(v1.co[i], h1.co[i], h2.co[i], v2.co[i], t);
+        ;
+        p[i] = cubic(
+          v1.co[i],
+          h1.co[i],
+          h2.co[i],
+          v2.co[i],
+          t
+        );
       }
       return p;
     } else {
@@ -18745,7 +18759,7 @@ var Edge = class extends Element {
     throw new Error("vertex " + v.eid + " not in edge");
   }
 };
-Edge.STRUCT = struct_default.inherit(Edge, Element, "mesh.Edge") + `
+Edge.STRUCT = struct_default.inherit(Edge, Element2, "mesh.Edge") + `
   v1   : int | this.v1.eid;
   v2   : int | this.v2.eid;
   h1   : int | this.h1 ? this.h1.eid : -1;
@@ -18753,7 +18767,7 @@ Edge.STRUCT = struct_default.inherit(Edge, Element, "mesh.Edge") + `
   l    : int | this.l ? this.l.eid : -1;
 }`;
 struct_default.register(Edge);
-var Loop = class extends Element {
+var Loop = class extends Element2 {
   static {
     __name(this, "Loop");
   }
@@ -18807,7 +18821,7 @@ var Loop = class extends Element {
     return this.v === this.e.v1 ? this.e.h2 : this.e.h1;
   }
 };
-Loop.STRUCT = struct_default.inherit(Loop, Element, "mesh.Loop") + `
+Loop.STRUCT = struct_default.inherit(Loop, Element2, "mesh.Loop") + `
   v : int | this.v.eid;
   e : int | this.e.eid;
 }`;
@@ -18873,7 +18887,7 @@ loopstack.cur = 0;
 for (let i = 0; i < loopstack.length; i++) {
   loopstack[i] = new LoopListIter();
 }
-var LoopList = class extends Element {
+var LoopList = class extends Element2 {
   static {
     __name(this, "LoopList");
   }
@@ -18896,12 +18910,12 @@ var LoopList = class extends Element {
     return Array.from(this).map((l) => l.eid);
   }
 };
-LoopList.STRUCT = struct_default.inherit(LoopList, Element, "mesh.LoopList") + `
+LoopList.STRUCT = struct_default.inherit(LoopList, Element2, "mesh.LoopList") + `
   _loops : iter(int) | this._save_loops();
 }
 `;
 struct_default.register(LoopList);
-var Face = class extends Element {
+var Face = class extends Element2 {
   static {
     __name(this, "Face");
   }
@@ -18969,7 +18983,7 @@ var Face = class extends Element {
     return this.center;
   }
 };
-Face.STRUCT = struct_default.inherit(Face, Element, "mesh.Face") + `
+Face.STRUCT = struct_default.inherit(Face, Element2, "mesh.Face") + `
   lists     : iter(list, int) | list.eid;
   fillColor : vec4;
   blur      : float;
@@ -19843,7 +19857,7 @@ var Mesh = class {
   }
 };
 
-// scripts/core/workspace.js
+// scripts/core/workspace.ts
 var pick_cachering = util_exports.cachering.fromConstructor(PickData, 32);
 var LoadDefaultsOp = class extends ToolOp {
   static {
@@ -19858,7 +19872,7 @@ var LoadDefaultsOp = class extends ToolOp {
     };
   }
   exec(ctx) {
-    ctx.state.createNewFile(true);
+    ctx.state.loadStartupFile();
     window.redraw_all();
   }
 };
@@ -19867,33 +19881,38 @@ var Workspace = class extends simple_exports.Editor {
   static {
     __name(this, "Workspace");
   }
-  static STRUCT = struct_default.inlineRegister(this, `
+  static {
+    this.STRUCT = struct_default.inlineRegister(
+      this,
+      `
 Workspace {
 }
-  `);
+  `
+    );
+  }
   constructor() {
     super();
-    this.toolModePanel = void 0;
-    this.oldToolMode = void 0;
     this.canvas = document.createElement("canvas");
     this.g = this.canvas.getContext("2d");
     this.mpos = new Vector2();
     this.shadow.appendChild(this.canvas);
     this.keymap = new KeyMap();
     this.keymap.add(new HotKey("W", [], "mesh.vertex_smooth"));
-    this.keymap.add(new HotKey("Space", [], () => {
-      let menu = [];
-      for (let cls of ToolClasses) {
-        let def = cls.tooldef();
-        menu.push(def.toolpath);
-      }
-      menu = createMenu(this.ctx, "Find Tool", menu);
-      let mpos = this.ctx.screen.mpos;
-      startMenu(menu, mpos[0], mpos[1], true);
-      console.log(menu);
-    }));
+    this.keymap.add(
+      new HotKey("Space", [], () => {
+        let menu = [];
+        for (let cls of ToolClasses) {
+          let def = cls.tooldef();
+          menu.push(def.toolpath);
+        }
+        menu = createMenu(this.ctx, "Find Tool", menu);
+        let mpos = this.ctx.screen.mpos;
+        startMenu(menu, mpos[0], mpos[1], true);
+        console.log(menu);
+      })
+    );
     let eventBad = /* @__PURE__ */ __name((e) => {
-      if (haveModal()) {
+      if (haveModal(e)) {
         return true;
       }
       let elem2 = this.ctx.screen.pickElement(e.x, e.y);
@@ -19929,9 +19948,10 @@ Workspace {
     });
   }
   get toolmode() {
-    return this.ctx?.toolmode;
+    return this.ctx.toolmode;
   }
   static defineAPI(api, st) {
+    return st;
   }
   static define() {
     return {
@@ -19989,8 +20009,7 @@ Workspace {
       this.oldToolMode.sideBarUIData = saveUIData(this.toolModePanel, "toolmodepanel");
     }
     let sidebar = this.makeSideBar();
-    let tab;
-    tab = sidebar.tab("Options");
+    let tab = sidebar.tab("Options");
     if (config_default.DRAW_TEST_IMAGES) {
       this.ctx.state.testImages.makeUI(tab, "testImages");
     }
@@ -20012,7 +20031,9 @@ Workspace {
     tab = sidebar.tab("Last Command");
     tab.add(UIBase2.createElement("last-tool-panel-x"));
     this.oldToolMode = toolmode;
-    loadUIData(this.sidebar, uidata);
+    if (this.sidebar && uidata) {
+      loadUIData(this.sidebar, uidata);
+    }
     if (toolmode.sideBarUIData.length > 0) {
       loadUIData(this.toolModePanel, toolmode.sideBarUIData);
     }
@@ -20055,7 +20076,7 @@ Workspace {
   setCSS() {
     this.canvas.style["position"] = "absolute";
   }
-  pick(localX, localY, selmask = config_default.SELECTMASK, limit = void 0) {
+  pick(localX, localY, selmask = config_default.SELECTMASK, limit) {
     let mesh = this.ctx.mesh;
     if (limit === void 0) {
       limit = selmask & 32 /* FACE */ ? 15 : 25;
@@ -20139,7 +20160,7 @@ Workspace {
           continue;
         }
         let ok = !minret;
-        ok = ok || minret.elem.flag & 1 /* SELECT */ && !(f.flag & 1 /* SELECT */);
+        ok = ok || !!(minret.elem.flag & 1 /* SELECT */ && !(f.flag & 1 /* SELECT */));
         if (ok) {
           minret = pick_cachering.next().load(f, f.type, 0);
         }
@@ -20186,11 +20207,14 @@ var PropertiesBag = class {
     __name(this, "PropertiesBag");
   }
   static {
-    this.STRUCT = struct_default.inlineRegister(this, `
+    this.STRUCT = struct_default.inlineRegister(
+      this,
+      `
     PropertiesBag {
       _props : array(abstract(ToolProperty)) | this._save();
     }
-  `);
+  `
+    );
   }
   static defineAPI(api, st) {
     api.mapStructCustom(this, this.getStruct.bind(this));
@@ -20410,7 +20434,7 @@ var PropertiesBag = class {
   }
 };
 simple_exports.DataModel.register(PropertiesBag);
-var PropsEditor = class extends Container {
+var PropsEditor = class extends RowFrame {
   constructor() {
     super();
     this.needsRebuild = true;
@@ -20442,7 +20466,7 @@ var PropsEditor = class extends Container {
   }
   rebuild() {
     let uidata = saveUIData(this, "props editor");
-    let cols = this.columns;
+    let colsCount = this.columns;
     let path = this.getAttribute("datapath");
     let props = this.ctx.api.getValue(this.ctx, path);
     if (!props) {
@@ -20452,27 +20476,27 @@ var PropsEditor = class extends Container {
     this.needsRebuild = false;
     this.dataPrefix = path;
     this.clear();
-    console.log("Columns", cols);
-    const cols2 = new Array(cols).fill(1).map((c) => this.col());
+    console.log("Columns", colsCount);
+    const cols = new Array(colsCount).fill(1).map(() => this.col());
     let i = 0;
+    const panels = /* @__PURE__ */ new Map();
     let templ = props.sourceTemplate;
-    let rec = /* @__PURE__ */ __name((obj, cols3) => {
-      for (let k in obj) {
-        let v = obj[k];
-        if (k === "type" && v === "panel") {
-          continue;
+    for (let k in templ) {
+      let v = templ[k];
+      if (typeof v === "object" && typeof v["panel"] === "string") {
+        let panel = panels.get(v.panel);
+        if (panel === void 0) {
+          let ci = i++ % colsCount;
+          panel = cols[ci].panel(ToolProperty2.makeUIName(v.panel));
+          panels.set(v.panel, panel);
         }
-        let ci = i++ % cols3.length;
-        if (typeof v === "object" && v.type === "panel") {
-          let panel = cols3[ci].panel(ToolProperty2.makeUIName(k));
-          let cols22 = new Array(cols3.length).fill(1).map((c) => panel.col());
-          rec(v, cols22);
-          continue;
-        }
-        cols3[ci].prop(k);
+        panel.prop(k);
+      } else {
+        let ci = i++ % colsCount;
+        cols[ci].prop(k);
+        console.log(ci);
       }
-    }, "rec");
-    rec(templ, cols2);
+    }
     loadUIData(this, uidata);
   }
   update() {
@@ -20710,9 +20734,9 @@ ImageWrangler {
 };
 DataModel.register(ImageWrangler);
 
-// scripts/core/mesh_utils.js
+// scripts/core/mesh_utils.ts
 function vertexSmooth(mesh, verts = mesh.verts, fac = 0.5, doHandles = true) {
-  let co = new Vertex();
+  let co = new MeshVector();
   let edges;
   edges = /* @__PURE__ */ new Set();
   if (mesh.haveHandles && doHandles) {
@@ -20784,8 +20808,8 @@ function duplicate(mesh, geom) {
     mesh.copyElemData(e2, e);
     map.set(e, e2);
     if (e.h1) {
-      e2.h1.co.load(e.h1);
-      e2.h2.co.load(e.h2);
+      e2.h1.co.load(e.h1.co);
+      e2.h2.co.load(e.h2.co);
       mesh.copyElemData(e2.h1, e.h1);
       mesh.copyElemData(e2.h2, e.h2);
     }
@@ -21204,7 +21228,7 @@ var RotateOp = class extends TransformOp {
 };
 ToolOp.register(RotateOp);
 
-// scripts/core/mesh_ops.js
+// scripts/core/mesh_ops.ts
 var SelToolModes = {
   ADD: 0,
   SUB: 1,
@@ -21218,8 +21242,10 @@ function saveUndoMesh(mesh) {
 __name(saveUndoMesh, "saveUndoMesh");
 function loadUndoMesh(mesh, data) {
   let mesh2 = struct_default.readObject(data, Mesh);
+  const a2 = mesh;
+  const b = mesh2;
   for (let k in mesh2) {
-    mesh[k] = mesh2[k];
+    a2[k] = b[k];
   }
   window.redraw_all();
 }
@@ -21229,10 +21255,10 @@ var MeshOp = class extends ToolOp {
     __name(this, "MeshOp");
   }
   undoPre(ctx) {
-    this._undo = saveUndoMesh(ctx.mesh);
+    this._meshUndoBuf = saveUndoMesh(ctx.mesh);
   }
   undo(ctx) {
-    loadUndoMesh(ctx.mesh, this._undo);
+    loadUndoMesh(ctx.mesh, this._meshUndoBuf);
   }
   execPost(ctx) {
     window.redraw_all();
@@ -21321,24 +21347,6 @@ var DeleteOp = class extends MeshOp {
   }
 };
 ToolOp.register(DeleteOp);
-var TriangulateOp = class extends MeshOp {
-  static {
-    __name(this, "TriangulateOp");
-  }
-  static tooldef() {
-    return {
-      uiname: "Triangulate",
-      toolpath: "mesh.triangulate",
-      inputs: ToolOp.inherit({})
-    };
-  }
-  exec(ctx) {
-    let mesh = ctx.mesh;
-    mesh.triangulate();
-    window.redraw_all();
-  }
-};
-ToolOp.register(TriangulateOp);
 var ExtrudeVertOp = class extends MeshOp {
   static {
     __name(this, "ExtrudeVertOp");
@@ -21387,10 +21395,9 @@ var MakeFaceOp = class extends MeshOp {
   }
   exec(ctx) {
     let mesh = ctx.mesh;
-    let vs = util_exports.list(mesh.verts.selected.editable);
-    vs = vs.sort((a2, b) => a2.edges.length - b.edges.length);
-    vs = new Set(vs);
-    debugger;
+    let vs1 = Array.from(mesh.verts.selected.editable);
+    vs1 = vs1.sort((a2, b) => a2.edges.length - b.edges.length);
+    let vs = new Set(vs1);
     let segs = [];
     let visit = /* @__PURE__ */ new WeakSet();
     for (let v of vs) {
@@ -21562,11 +21569,13 @@ var DuplicateOp = class extends MeshOp {
   }
   exec(ctx) {
     let mesh = ctx.mesh;
-    let geom = new Set([
-      Array.from(mesh.verts.selected.editable),
-      Array.from(mesh.edges.selected.editable),
-      Array.from(mesh.faces.selected.editable)
-    ].flat());
+    let geom = new Set(
+      [
+        Array.from(mesh.verts.selected.editable),
+        Array.from(mesh.edges.selected.editable),
+        Array.from(mesh.faces.selected.editable)
+      ].flat()
+    );
     let { oldNewMap } = duplicate(mesh, geom);
     for (let elist of mesh.getElists()) {
       if (!elist.active) {
@@ -21579,8 +21588,9 @@ var DuplicateOp = class extends MeshOp {
     }
     for (let elem2 of geom) {
       if (elem2.type === 2 /* EDGE */ && elem2.h1) {
-        mesh.setSelect(elem2.h1, false);
-        mesh.setSelect(elem2.h2, false);
+        const edge = elem2;
+        mesh.setSelect(edge.h1, false);
+        mesh.setSelect(edge.h2, false);
       }
       mesh.setSelect(elem2, false);
     }
@@ -21588,21 +21598,22 @@ var DuplicateOp = class extends MeshOp {
 };
 ToolOp.register(DuplicateOp);
 
-// scripts/core/mesh_selectops.js
+// scripts/core/mesh_selectops.ts
 var SelectOpBase = class extends ToolOp {
   static {
     __name(this, "SelectOpBase");
   }
   static tooldef() {
     return {
+      toolpath: "<select op base>",
       inputs: {
         mode: new EnumProperty(SelToolModes.AUTO, SelToolModes),
         selMask: new FlagProperty(1 | 2 | 4 | 8 | 16, MeshTypes)
       }
     };
   }
-  static create(ctx, args) {
-    let tool = super.create(ctx, args);
+  static invoke(ctx, args) {
+    let tool = super.invoke(ctx, args);
     if (!("selMask" in args)) {
       tool.inputs.selMask.setValue(ctx.selMask);
     }
@@ -21616,7 +21627,7 @@ var SelectOpBase = class extends ToolOp {
     return mask;
   }
   undoPre(ctx) {
-    this._undo = [];
+    this._selectOpUndo = [];
     let mesh = ctx.mesh;
     let mask = this.getSelMask(ctx);
     for (let list4 of mesh.getElists()) {
@@ -21626,21 +21637,21 @@ var SelectOpBase = class extends ToolOp {
         active: list4.active ? list4.active.eid : -1,
         highlight: list4.highlight ? list4.highlight.eid : -1
       };
-      this._undo.push(data);
-      data = data.elems;
+      this._selectOpUndo.push(data);
+      const elems = data.elems;
       if (!(list4.type & mask)) {
         continue;
       }
       for (let e of list4) {
-        data.push(e.eid);
-        data.push(e.flag);
+        elems.push(e.eid);
+        elems.push(e.flag);
       }
     }
   }
   undo(ctx) {
     let mesh = ctx.mesh;
     let eidMap = mesh.eidMap;
-    for (let list4 of this._undo) {
+    for (let list4 of this._selectOpUndo) {
       let elist = mesh.elists[list4.type];
       elist.active = eidMap.get(list4.active);
       elist.highlight = eidMap.get(list4.highlight);
@@ -21649,13 +21660,13 @@ var SelectOpBase = class extends ToolOp {
         let eid = data[i], state = data[i + 1];
         let elem2 = eidMap.get(eid);
         if (!elem2) {
-          console.error("Missing mesh element " + eid + ":" + list4.tyoe);
+          console.error("Missing mesh element " + eid + ":" + list4.type);
           continue;
         }
         if (state === elem2.flag) {
           continue;
         }
-        elist.setSelect(elem2, state & 1 /* SELECT */);
+        elist.setSelect(elem2, !!(state & 1 /* SELECT */));
       }
     }
     window.redraw_all();
@@ -21693,7 +21704,10 @@ var SelectOneOp = class extends SelectOpBase {
     let selMask = this.getSelMask(ctx);
     let elem2 = mesh.eidMap.get(elemEid);
     const haveHandles = mesh.haveHandles;
-    console.log("unique", unique, flush, setActive, elemEid, mode, elem2);
+    if (elem2 === void 0) {
+      console.error("Unknown element " + elemEid);
+      return;
+    }
     if (unique) {
       mesh.selectNone();
     }
@@ -21701,8 +21715,9 @@ var SelectOneOp = class extends SelectOpBase {
       const select = mode !== SelToolModes.SUB;
       mesh.setSelect(elem2, select);
       if (select && haveHandles && elem2.type === 1 /* VERTEX */) {
-        for (let e of elem2.edges) {
-          mesh.setSelect(e.handle(elem2), true);
+        const vertex = elem2;
+        for (let e of vertex.edges) {
+          mesh.setSelect(e.handle(vertex), true);
         }
       }
     }
@@ -21857,7 +21872,6 @@ ToolOp.register(SelectLinked);
 var ToolModeSet = class extends Array {
   constructor() {
     super();
-    this.active = void 0;
     this.activeIndex = 0;
     Object.defineProperty(this, "activeIndex", {
       get() {
@@ -21925,7 +21939,7 @@ ToolOp.prototype.undo = function(ctx) {
     resetOnLoad: false
   });
 };
-var Context3 = class {
+var Context7 = class {
   static {
     __name(this, "Context");
   }
@@ -22019,23 +22033,34 @@ var Properties = {
   drawControls: { type: "bool", value: true },
   steps: { type: "int", value: 1, min: 0, max: 10, slideSpeed: 5 },
   boolVal: { type: "bool", value: true },
-  panel: {
-    type: "panel",
-    float: { type: "float", value: 0, min: 0, max: 10, step: 0.05, decimalPlaces: 3 },
-    slider: { type: "float", slider: true, value: 0, min: 0, max: 10, step: 0.05, decimalPlaces: 3 }
+  float: { panel: "panel2", type: "float", value: 0, min: 0, max: 10, step: 0.05, decimalPlaces: 3 },
+  slider: {
+    panel: "panel2",
+    type: "float",
+    slider: true,
+    value: 0,
+    min: 0,
+    max: 10,
+    step: 0.05,
+    decimalPlaces: 3
   }
 };
 
-// scripts/toolmode/toolmode_mesh.js
+// scripts/toolmode/toolmode_mesh.ts
 var pick_cachering2 = util_exports.cachering.fromConstructor(PickData, 32);
 var MeshEditor = class extends ToolModeBase {
   static {
     __name(this, "MeshEditor");
   }
-  static STRUCT = struct_default.inlineRegister(this, `
+  static {
+    this.STRUCT = struct_default.inlineRegister(
+      this,
+      `
 MeshToolMode {
 }
-  `);
+  `
+    );
+  }
   static toolModeDef() {
     return {
       typeName: "mesh",
@@ -22154,6 +22179,9 @@ MeshToolMode {
           elem2 = elist.highlight;
         }
       }
+      if (elem2 === void 0) {
+        return;
+      }
       let mode;
       if (e.shiftKey) {
         mode = elem2.flag & 1 /* SELECT */ ? SelToolModes.SUB : SelToolModes.ADD;
@@ -22189,7 +22217,7 @@ MeshToolMode {
   }
   on_mousemove(localX, localY, e) {
     this.mpos.loadXY(localX, localY);
-    if (haveModal()) {
+    if (haveModal(e)) {
       this.mdown = false;
       return;
     }
@@ -22219,18 +22247,23 @@ MeshToolMode {
   }
 };
 
-// scripts/toolmode/toolmode_pen.js
+// scripts/toolmode/toolmode_pen.ts
 var PenToolMode = class extends ToolModeBase {
   static {
     __name(this, "PenToolMode");
   }
-  static STRUCT = struct_default.inlineRegister(this, `
+  static {
+    this.STRUCT = struct_default.inlineRegister(
+      this,
+      `
 PenToolMode {
   color    : vec4;
   strength : float;
   radius   : float;
 }
-  `);
+  `
+    );
+  }
   static toolModeDef() {
     return {
       typeName: "pen",
@@ -22241,7 +22274,7 @@ PenToolMode {
   static {
     ToolModeBase.register(this);
   }
-  constructor(ctx = void 0) {
+  constructor(ctx) {
     super(ctx);
     this.strength = 1;
     this.radius = 25;
@@ -22250,6 +22283,7 @@ PenToolMode {
   static defineAPI(api, st) {
     st.float("strength", "strength", "Strength").range(0, 1).step(0.1).decimalPlaces(2).noUnits();
     st.float("radius", "radius", "Radius").range(0.1, 512).step(0.1).expRate(2).decimalPlaces(1).unit("pixel");
+    return st;
   }
   buildSideBar(container) {
     container.prop("strength");
@@ -22293,7 +22327,7 @@ window.addEventListener("contextmenu", (e) => {
 var App = class extends simple_exports.AppState {
   // XXX
   constructor() {
-    super(Context3);
+    super(Context7);
     this.toolmodes = new ToolModeSet();
     this.testImages = new ImageWrangler(TestImages);
     this.toolmodes = new ToolModeSet();
@@ -22355,12 +22389,12 @@ var App = class extends simple_exports.AppState {
     }
     return super.saveFileSync(this.getFileObjects(), args);
   }
-  saveFile(args = new FileArgs()) {
+  saveFile(args = {}) {
     return new Promise((accept, reject) => {
       accept(this.saveFileSync(this.getFileObjects(), args));
     });
   }
-  loadFileSync(data, args = new FileArgs()) {
+  loadFileSync(data, args = {}) {
     if (args.useJSON === void 0) {
       args.useJSON = true;
     }
@@ -22399,7 +22433,7 @@ var App = class extends simple_exports.AppState {
     window.redraw_all();
     return file;
   }
-  loadFile(data, args = new FileArgs()) {
+  loadFile(data, args = {}) {
     return new Promise((accept, reject) => {
       accept(this.loadFileSync(data, args));
     });

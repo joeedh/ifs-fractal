@@ -1,15 +1,4 @@
-import {
-  Vector2,
-  Vector3,
-  Vector4,
-  Matrix4,
-  Quat,
-  util,
-  math,
-  nstructjs,
-  BaseVector,
-  INumVector,
-} from '../path.ux/pathux.js'
+import {Vector3, Vector4, util, nstructjs, INumVector} from '../path.ux/pathux.js'
 import config from '../config/config.js'
 ;('use strict')
 
@@ -22,7 +11,6 @@ import './redraw_all.d.ts'
 
 export const MeshVector = Vector3
 export type MeshVector = Vector3
-
 
 /*
 export class MeshVector {
@@ -86,13 +74,7 @@ export const ElemColors = [
     .add(sel as unknown as Vector4)
     .add(actsel as unknown as Vector4)
     .mulScalar(0.3333), //111  7 Highlight+Select+Active
-]
-
-for (let i = 0; i < ElemColors.length; i++) {
-  ElemColors[i] = new Vector4(ElemColors[i])
-}
-
-console.log(ElemColors)
+].map(color => new Vector4(color))
 
 export function getElemColor<E extends Element>(list: ElementArray<E>, e: E) {
   let mask = 0
@@ -169,7 +151,7 @@ mesh.Vertex {
   co: MeshVector
   edges: Edge[]
 
-  constructor(co: Vector3) {
+  constructor(co?: Vector3) {
     super(MeshTypes.VERTEX)
     this.co = new MeshVector(co)
     this.edges = []
@@ -307,7 +289,13 @@ export class Edge extends Element {
       const {v1, h1, h2, v2} = this
 
       for (let i = 0; i < p.length; i++) {
-        (p as unknown as number[])[i] = cubic(v1.co[i as 0|1], h1!.co[i as 0|1], h2!.co[i as 0|1] , v2.co[i as 0|1], t)
+        ;(p as unknown as number[])[i] = cubic(
+          v1.co[i as 0 | 1],
+          h1!.co[i as 0 | 1],
+          h2!.co[i as 0 | 1],
+          v2.co[i as 0 | 1],
+          t
+        )
       }
 
       return p
@@ -322,7 +310,7 @@ export class Edge extends Element {
       const {v1, h1, h2, v2} = this
 
       for (let i = 0; i < p.length; i++) {
-        p[i as 0|1] = dcubic(v1.co[i as 0|1], h1!.co[i as 0|1], h2!.co[i as 0|1], v2.co[i as 0|1], t)
+        p[i as 0 | 1] = dcubic(v1.co[i as 0 | 1], h1!.co[i as 0 | 1], h2!.co[i as 0 | 1], v2.co[i as 0 | 1], t)
       }
     } else {
       return p.load(this.v2.co).sub(this.v1.co)
@@ -338,7 +326,7 @@ export class Edge extends Element {
       const {v1, h1, h2, v2} = this
 
       for (let i = 0; i < p.length; i++) {
-        p[i as 0|1] = d2cubic(v1.co[i as 0|1], h1!.co[i as 0|1], h2!.co[i as 0|1], v2.co[i as 0|1], t)
+        p[i as 0 | 1] = d2cubic(v1.co[i as 0 | 1], h1!.co[i as 0 | 1], h2!.co[i as 0 | 1], v2.co[i as 0 | 1], t)
       }
     } else {
       return p.zero()
@@ -603,7 +591,7 @@ LoopList.STRUCT =
 `
 nstructjs.register(LoopList)
 
-class Face extends Element {
+export class Face extends Element {
   lists: LoopList[]
   blur: number
   center: Vector3
@@ -1066,7 +1054,7 @@ export class Mesh {
     this.eidMap.set(e.eid, e)
   }
 
-  setActive(elem: Element) {
+  setActive(elem: Element | undefined) {
     if (!elem) {
       for (let k in this.elists) {
         this.elists[k].active = undefined
@@ -1078,7 +1066,7 @@ export class Mesh {
     return this
   }
 
-  setHighlight(elem: Element) {
+  setHighlight(elem: Element | undefined) {
     let ret = false
 
     if (!elem) {

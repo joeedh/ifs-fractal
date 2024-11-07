@@ -1,4 +1,4 @@
-import { StructReader } from '../path.ux/scripts/path-controller/types/util/nstructjs.js'
+import {StructReader} from '../path.ux/scripts/path-controller/types/util/nstructjs.js'
 import {
   NumberConstraints,
   nstructjs,
@@ -16,8 +16,9 @@ import {
   ToolProperty,
   DataAPI,
   FloatProperty,
+  RowFrame,
 } from '../path.ux/scripts/pathux.js'
-import { Context } from './context'
+import {Context} from './context'
 
 /* maps both name -> proptype and proptype -> name */
 export const PropTypeMap = {
@@ -90,12 +91,9 @@ interface IEnum<K extends string = string, V = number> extends IEnumBase<'enum',
 interface IFlag<K extends string = string, V = number> extends IEnumBase<'flag', K, V> {}
 
 type IProperty = IBoolean | IString | IFloat | IInt | IVec2 | IVec3 | IVec4 | IColor3 | IColor4 | IEnum | IFlag
-interface IPanel {
-  type: 'panel'
-}
 
 export interface ITemplateDef {
-  [k: string]: IProperty | IPanel
+  [k: string]: IProperty
 }
 
 type ConvertType<T> = {
@@ -105,16 +103,19 @@ type ConvertType<T> = {
 export type {ConvertType as PropBagAccessor}
 
 interface PropertiesBagConstructor<T extends ITemplateDef = {}> {
-  new(template?: T) : PropertiesBag<T>
+  new (template?: T): PropertiesBag<T>
   defineAPI(api: DataAPI, st: DataStruct): void
   templateFromProps<T extends ITemplateDef = {}>(props: ToolProperty<any>[]): T
 }
 export class PropertiesBag<T extends ITemplateDef> {
-  static STRUCT = nstructjs.inlineRegister(this, `
+  static STRUCT = nstructjs.inlineRegister(
+    this,
+    `
     PropertiesBag {
       _props : array(abstract(ToolProperty)) | this._save();
     }
-  `)
+  `
+  )
 
   static defineAPI(api: DataAPI, st: DataStruct) {
     api.mapStructCustom(this, this.getStruct.bind(this))
@@ -124,8 +125,8 @@ export class PropertiesBag<T extends ITemplateDef> {
     return obj._struct
   }
 
-  ['constructor'] : PropertiesBagConstructor
-  
+  ['constructor']: PropertiesBagConstructor
+
   sourceTemplate: T
 
   //these two are used by props widget to detect updates
@@ -412,7 +413,7 @@ export class PropertiesBag<T extends ITemplateDef> {
 }
 simple.DataModel.register(PropertiesBag)
 
-export class PropsEditor extends Container<Context> {
+export class PropsEditor extends RowFrame<Context> {
   needsRebuild = true
   _last_update_key = ''
 
@@ -449,7 +450,7 @@ export class PropsEditor extends Container<Context> {
   rebuild() {
     let uidata = saveUIData(this, 'props editor')
 
-    let cols = this.columns
+    let colsCount = this.columns
     let path = this.getAttribute('datapath')!
     let props = this.ctx.api.getValue(this.ctx, path)
 
@@ -463,33 +464,31 @@ export class PropsEditor extends Container<Context> {
 
     this.clear()
 
-    console.log('Columns', cols)
-    const cols2 = new Array(cols).fill(1).map((c) => this.col())
+    console.log('Columns', colsCount)
+    const cols = new Array(colsCount).fill(1).map(() => this.col())
     let i = 0
 
+    const panels = new Map<string, Container>()
+
     let templ = props.sourceTemplate
-    let rec = (obj: any, cols: Container[]) => {
-      for (let k in obj) {
-        let v = obj[k]
+    for (let k in templ) {
+      let v = templ[k]
 
-        if (k === 'type' && v === 'panel') {
-          continue
+      if (typeof v === 'object' && typeof v['panel'] === 'string') {
+        let panel = panels.get(v.panel)
+        if (panel === undefined) {
+          let ci = i++ % colsCount
+          panel = cols[ci].panel(ToolProperty.makeUIName(v.panel))
+          panels.set(v.panel, panel)
         }
-
-        let ci = i++ % cols.length
-
-        if (typeof v === 'object' && v.type === 'panel') {
-          let panel = cols[ci].panel(ToolProperty.makeUIName(k))
-          let cols2 = new Array(cols.length).fill(1).map((c) => panel.col())
-          rec(v, cols2)
-          continue
-        }
-
+        panel.prop(k)
+      } else {
+        let ci = i++ % colsCount
         cols[ci].prop(k)
+        console.log(ci)
       }
     }
 
-    rec(templ, cols2)
     /*
     for (let prop of props._props) {
       let col = cols[i%cols.length]

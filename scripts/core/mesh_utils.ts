@@ -1,10 +1,10 @@
-import {MeshTypes, Vertex} from './mesh.js';
+import {Edge, Mesh, MeshTypes, MeshVector, Element, Vertex, Face} from './mesh';
 
-export function vertexSmooth(mesh, verts = mesh.verts, fac = 0.5, doHandles = true) {
-  let co = new Vertex();
+export function vertexSmooth(mesh: Mesh, verts: Iterable<Vertex> = mesh.verts, fac = 0.5, doHandles = true) {
+  let co = new MeshVector();
 
   let edges;
-  edges = new Set();
+  edges = new Set<Edge>();
 
   if (mesh.haveHandles && doHandles) {
     for (let v of verts) {
@@ -14,8 +14,8 @@ export function vertexSmooth(mesh, verts = mesh.verts, fac = 0.5, doHandles = tr
     }
 
     for (let e of edges) {
-      e.h1.co.sub(e.v1.co);
-      e.h2.co.sub(e.v2.co);
+      e.h1!.co.sub(e.v1.co);
+      e.h2!.co.sub(e.v2.co);
     }
   }
 
@@ -38,28 +38,28 @@ export function vertexSmooth(mesh, verts = mesh.verts, fac = 0.5, doHandles = tr
 
   if (mesh.haveHandles && doHandles) {
     for (let e of edges) {
-      e.h1.co.add(e.v1.co);
-      e.h2.co.add(e.v2.co);
+      e.h1!.co.add(e.v1.co);
+      e.h2!.co.add(e.v2.co);
     }
   }
 }
 
-export function duplicate(mesh, geom) {
-  let verts = new Set()
-  let edges = new Set()
-  let faces = new Set()
+export function duplicate(mesh: Mesh, geom: Iterable<Element>) {
+  let verts = new Set<Vertex>()
+  let edges = new Set<Edge>()
+  let faces = new Set<Face>()
   let map = new Map()
 
   for (let elem of geom) {
     switch (elem.type) {
       case MeshTypes.VERTEX:
-        verts.add(elem);
+        verts.add(elem as Vertex);
         break;
       case MeshTypes.EDGE:
-        edges.add(elem);
+        edges.add(elem as Edge);
         break;
       case MeshTypes.FACE:
-        faces.add(elem);
+        faces.add(elem as Face);
         break;
     }
   }
@@ -87,10 +87,10 @@ export function duplicate(mesh, geom) {
     map.set(e, e2)
 
     if (e.h1) {
-      e2.h1.co.load(e.h1);
-      e2.h2.co.load(e.h2);
-      mesh.copyElemData(e2.h1, e.h1);
-      mesh.copyElemData(e2.h2, e.h2);
+      e2.h1!.co.load(e.h1!.co);
+      e2.h2!.co.load(e.h2!.co);
+      mesh.copyElemData(e2.h1!, e.h1!);
+      mesh.copyElemData(e2.h2!, e.h2!);
     }
   }
 

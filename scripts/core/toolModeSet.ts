@@ -6,8 +6,8 @@ import {
 import { StructReader } from '../path.ux/scripts/path-controller/types/util/nstructjs.js'
 import {ToolModeBase} from '../toolmode/toolmode_base.js'
 
-export class ToolModeSet extends Array {
-  active = undefined
+export class ToolModeSet extends Array<ToolModeBase> {
+  active: ToolModeBase
   activeIndex = 0
 
   static STRUCT = nstructjs.inlineRegister(

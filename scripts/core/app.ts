@@ -32,7 +32,7 @@ declare global {
 export const STARTUP_FILE_KEY = '_startup_file_1'
 
 import {StructReader} from '../path.ux/scripts/path-controller/types/util/nstructjs.js'
-import {FileData} from '../path.ux/scripts/types/simple/simple.js'
+import {FileData, IFileArgs} from '../path.ux/scripts/types/simple/simple.js'
 
 /* See config.DRAW_TEST_IMAGES */
 export const TestImages = {
@@ -65,7 +65,7 @@ window.addEventListener('contextmenu', (e) => {
 import {ToolModeSet} from './toolModeSet.js'
 export {ToolModeSet}
 
-export class App extends simple.AppState {
+export class App extends simple.AppState<Context> {
   mesh: Mesh
   properties: PropertiesBag<typeof Properties>
   toolmodes = new ToolModeSet()
@@ -138,7 +138,7 @@ export class App extends simple.AppState {
     return [this.mesh, this.properties, this.testImages, this.toolmodes]
   }
 
-  saveFileSync(objects: any, args: {useJSON?: boolean} = {}): string | ArrayBuffer {
+  saveFileSync(objects: any, args: IFileArgs = {}): string | ArrayBuffer {
     if (args.useJSON === undefined) {
       args.useJSON = true
     }
@@ -146,13 +146,13 @@ export class App extends simple.AppState {
     return super.saveFileSync(this.getFileObjects(), args)
   }
 
-  saveFile(args = new FileArgs()): Promise<string | ArrayBuffer> {
+  saveFile(args: IFileArgs = {}): Promise<string | ArrayBuffer> {
     return new Promise<string | ArrayBuffer>((accept, reject) => {
       accept(this.saveFileSync(this.getFileObjects(), args))
     })
   }
 
-  loadFileSync(data: ArrayBuffer | string, args = new FileArgs()) {
+  loadFileSync(data: ArrayBuffer | string, args: IFileArgs = {}) {
     if (args.useJSON === undefined) {
       args.useJSON = true
     }
@@ -205,7 +205,7 @@ export class App extends simple.AppState {
     return file
   }
 
-  loadFile(data: ArrayBuffer | string, args = new FileArgs()) {
+  loadFile(data: ArrayBuffer | string, args: IFileArgs = {}) {
     return new Promise<FileData>((accept, reject) => {
       accept(this.loadFileSync(data, args))
     })
