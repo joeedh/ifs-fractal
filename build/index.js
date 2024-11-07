@@ -18316,11 +18316,11 @@ var MeshTypes = /* @__PURE__ */ ((MeshTypes5) => {
   MeshTypes5[MeshTypes5["FACE"] = 32] = "FACE";
   return MeshTypes5;
 })(MeshTypes || {});
-var MeshFlags = /* @__PURE__ */ ((MeshFlags2) => {
-  MeshFlags2[MeshFlags2["NONE"] = 0] = "NONE";
-  MeshFlags2[MeshFlags2["SELECT"] = 1] = "SELECT";
-  MeshFlags2[MeshFlags2["HIDE"] = 2] = "HIDE";
-  return MeshFlags2;
+var MeshFlags = /* @__PURE__ */ ((MeshFlags3) => {
+  MeshFlags3[MeshFlags3["NONE"] = 0] = "NONE";
+  MeshFlags3[MeshFlags3["SELECT"] = 1] = "SELECT";
+  MeshFlags3[MeshFlags3["HIDE"] = 2] = "HIDE";
+  return MeshFlags3;
 })(MeshFlags || {});
 var MeshFeatures = /* @__PURE__ */ ((MeshFeatures3) => {
   MeshFeatures3[MeshFeatures3["NONE"] = 0] = "NONE";
@@ -18459,7 +18459,7 @@ var PickData = class {
   }
 };
 
-// scripts/core/bezier.js
+// scripts/core/bezier.ts
 function cubic(k1, k2, k3, k4, s) {
   return -(k1 * s ** 3 - 3 * k1 * s ** 2 + 3 * k1 * s - k1 - 3 * k2 * s ** 3 + 6 * k2 * s ** 2 - 3 * k2 * s + 3 * k3 * s ** 3 - 3 * k3 * s ** 2 - k4 * s ** 3);
 }
@@ -18472,11 +18472,16 @@ function d2cubic(k1, k2, k3, k4, s) {
   return -6 * (k1 * s - k1 - 3 * k2 * s + 2 * k2 + 3 * k3 * s - k3 - k4 * s);
 }
 __name(d2cubic, "d2cubic");
-var offsetdvs = util_exports.cachering.fromConstructor(Vector3, 64);
-function cubicOffsetDv(a2, b, c, d, s, radius) {
+var offsetdvs = util_exports.cachering.fromConstructor(Vector2, 64);
+function cubicOffsetDv(_a, _b, _c, _d, s, radius) {
+  let a2 = _a;
+  let b = _b;
+  let c = _c;
+  let d = _d;
   let dv = offsetdvs.next();
   let dv2 = offsetdvs.next();
-  for (let i = 0; i < 2; i++) {
+  for (let _i = 0; _i < 2; _i++) {
+    let i = _i;
     dv[i] = dcubic(a2[i], b[i], c[i], d[i], s);
     dv2[i] = d2cubic(a2[i], b[i], c[i], d[i], s);
   }
@@ -20522,63 +20527,65 @@ var PropsEditor = class extends RowFrame {
 };
 UIBase2.register(PropsEditor);
 
-// scripts/core/image_wrangler.js
+// scripts/core/image_wrangler.ts
 var ImageItemIF = class {
+  constructor() {
+    this.name = "name";
+    this.size = [512, 512];
+    this.description = "";
+    this.uiName = void 0;
+  }
   static {
     __name(this, "ImageItemIF");
   }
-  name = "name";
-  size = [512, 512];
-  description = "";
-  uiName = void 0;
 };
 var ImageTile = class _ImageTile {
-  static {
-    __name(this, "ImageTile");
-  }
-  image = null;
-  size = new Vector2([512, 512]);
-  name = "name";
-  pos = new Vector2();
-  id = 0;
-  enumkey = "";
-  description = "";
-  enabled = true;
-  constructor(size, name2, description = "", uiName = void 0) {
+  constructor(size, name2, description = "", uiName) {
+    this.size = new Vector2([512, 512]);
+    this.name = "name";
+    this.pos = new Vector2();
+    this.id = 0;
+    this.enumkey = "";
+    this.description = "";
+    this.enabled = true;
     this.size.load(size);
     this.name = name2;
     this.description = description;
-    this.uiName = uiName;
+    this.uiName = uiName ?? ToolProperty2.makeUIName(name2);
+  }
+  static {
+    __name(this, "ImageTile");
   }
   static fromImageItem(item) {
-    return new _ImageTile(item.size, item.name, item.description, item.uiName);
+    return new _ImageTile(item.size ?? [item.dimen ?? 0, item.dimen ?? 0], item.name ?? "", item.description, item.uiName);
   }
 };
 var ImageWrangler = class extends simple_exports.DataModel {
+  constructor(template, singletonMode = false) {
+    super();
+    this._tiles = [];
+    this.images = {};
+    this.columns = 2;
+    this.singletonMode = false;
+    /* Show only one image at a time. */
+    this.apiStructNeedsDefine = true;
+    this.visible = true;
+    this._enabled_images = void 0;
+    this.singletonMode = singletonMode;
+    if (template !== void 0) {
+      this.loadFromTemplate(template);
+    }
+  }
   static {
     __name(this, "ImageWrangler");
   }
-  _tiles = [];
-  images = {};
-  columns = 2;
-  singletonMode = false;
-  /* Show only one image at a time. */
-  apiStructNeedsDefine = true;
-  visible = true;
-  _enabled_images = void 0;
-  static apiStruct = void 0;
-  static STRUCT = `
+  static {
+    this.STRUCT = `
 ImageWrangler {
   visible         : bool;
   _enabled_images : int | this.enabled_images;
 }
   `;
-  constructor(template = void 0, singletonMode = false) {
-    super();
-    this.singletonMode = singletonMode;
-    if (template !== void 0) {
-      this.loadFromTemplate(template);
-    }
   }
   loadSTRUCT(reader) {
     reader(this);
@@ -20586,6 +20593,7 @@ ImageWrangler {
   static defineAPI(api, st) {
     this.apiStruct = st;
     st.bool("visible", "visible", "Visible").description("Show or hide all images.").on("change", () => window.redraw_all());
+    return st;
   }
   checkApiStruct() {
     if (!this.constructor.apiStruct || !this.apiStructNeedsDefine) {
@@ -20632,7 +20640,7 @@ ImageWrangler {
   }
   set enabled_images(v) {
     for (let tile of this._tiles) {
-      tile.enabled = v & 1 << tile.id;
+      tile.enabled = !!(v & 1 << tile.id);
     }
     window.redraw_all();
   }
@@ -20678,6 +20686,7 @@ ImageWrangler {
       if (!("size" in idef) && defaultSize) {
         tile.size.load(defaultSize);
       }
+      tile.name = k;
       tile.image = new ImageData(tile.size[0], tile.size[1]);
       let idata = tile.image.data;
       for (let i2 = 0; i2 < idata.length; i2 += 4) {
@@ -20831,7 +20840,7 @@ function duplicate(mesh, geom) {
 }
 __name(duplicate, "duplicate");
 
-// scripts/core/transform_ops.js
+// scripts/core/transform_ops.ts
 var VecProperty = new Vertex().co.length === 3 ? Vec3Property : Vec2Property;
 var Vector = MeshVector;
 var VectorSize = new Vector().length;
@@ -20839,10 +20848,10 @@ var TransformList = class extends Array {
   static {
     __name(this, "TransformList");
   }
-  constructor(typeName, selmask) {
+  constructor(typeName, selMask) {
     super();
     this.typeName = typeName;
-    this.selMask = selmask;
+    this.selMask = selMask;
   }
 };
 var TransformClasses = [];
@@ -20892,7 +20901,7 @@ var TransformVert = class extends TransformElem {
   constructor(v) {
     super();
     this.v = v;
-    this.start = new Vector(v.co);
+    this.start = new MeshVector(v.co);
   }
   static create(mesh, selMask) {
     let list4 = new TransformList(this.transformDefine().typeName, selMask);
@@ -20929,6 +20938,7 @@ var TransformVert = class extends TransformElem {
         continue;
       }
       for (let j = 0; j < VectorSize; j++) {
+        ;
         elem2.co[j] = data[i + j + 1];
       }
     }
@@ -20956,7 +20966,6 @@ var TransformOp = class extends ToolOp {
   }
   constructor() {
     super();
-    this.transData = void 0;
     this.deltaMpos = new Vector2();
     this.startMpos = new Vector2();
     this.lastMpos = new Vector2();
@@ -20966,6 +20975,7 @@ var TransformOp = class extends ToolOp {
   }
   static tooldef() {
     return {
+      toolpath: "",
       inputs: {
         selMask: new FlagProperty(config_default.SELECTMASK, MeshTypes),
         center: new VecProperty()
@@ -21092,8 +21102,8 @@ var TranslateOp = class extends TransformOp {
   on_pointermove(e) {
     super.on_pointermove(e);
     let delta = new Vector2(this.mpos).sub(this.startMpos);
-    delta = new Vector().loadXY(delta[0], delta[1]);
-    this.inputs.offset.setValue(delta);
+    delta = new Vector2().loadXY(delta[0], delta[1]);
+    this.inputs.offset.setValue(new Vector().loadXY(delta[0], delta[1]));
     this.exec(this.modal_ctx);
   }
   exec(ctx) {
@@ -21133,8 +21143,8 @@ var ScaleOp = class extends TransformOp {
     let workspace = ctx.workspace;
     super.on_pointermove(e);
     this.resetTempGeom();
-    let delta = new Vector2(this.mpos).sub(this.startMpos);
-    delta = new Vector().loadXY(delta[0], delta[1]);
+    let delta2 = new Vector2(this.mpos).sub(this.startMpos);
+    let delta = new Vector().loadXY(delta2[0], delta2[1]);
     let center = this.inputs.center.getValue();
     let l1 = this.startMpos.vectorDistance(center);
     let l2 = this.mpos.vectorDistance(center);
@@ -21188,9 +21198,9 @@ var RotateOp = class extends TransformOp {
     };
   }
   on_pointermove(e) {
+    super.on_pointermove(e);
     let ctx = this.modal_ctx;
     let workspace = ctx.workspace;
-    super.on_pointermove(e);
     this.resetTempGeom();
     let { center, th } = this.getInputs();
     let scenter = workspace.getGlobalMouse(center[0], center[1]);
@@ -21939,7 +21949,7 @@ ToolOp.prototype.undo = function(ctx) {
     resetOnLoad: false
   });
 };
-var Context7 = class {
+var Context8 = class {
   static {
     __name(this, "Context");
   }
@@ -22327,7 +22337,7 @@ window.addEventListener("contextmenu", (e) => {
 var App = class extends simple_exports.AppState {
   // XXX
   constructor() {
-    super(Context7);
+    super(Context8);
     this.toolmodes = new ToolModeSet();
     this.testImages = new ImageWrangler(TestImages);
     this.toolmodes = new ToolModeSet();

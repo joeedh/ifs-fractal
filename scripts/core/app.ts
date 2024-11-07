@@ -13,7 +13,7 @@ import {FileArgs} from '../path.ux/scripts/simple/file.js'
 import {PropertiesBag} from './property_templ.js'
 import {Context} from './context'
 import config from '../config/config.js'
-import {ImageWrangler} from './image_wrangler.js'
+import {IImagesTemplate, ImageWrangler} from './image_wrangler.js'
 import {Icons} from '../../assets/icon_enum.js'
 import {ToolModeBase, ToolModeClasses} from '../toolmode/toolmode_base.js'
 import {Properties} from './properties'
@@ -47,7 +47,7 @@ export const TestImages = {
   test3: {
     dimen: 128,
   },
-}
+} as IImagesTemplate
 
 window.addEventListener('contextmenu', (e) => {
   console.log(e)
