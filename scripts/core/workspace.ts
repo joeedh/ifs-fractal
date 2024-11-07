@@ -207,6 +207,31 @@ Workspace {
     row.button('Save Defaults', () => {
       _appstate.saveStartupFile()
     })
+   
+    let button = ((row.button('Run', () => {
+      if (this.ctx.state.ifs.run()) {
+        button.setAttribute('name', 'Stop')
+      } else {
+        button.setAttribute('name', 'Run')
+      }
+    }).update) as any).after(() => {
+      if (this.ctx.state.ifs.running) {
+        button.setAttribute('name', 'Stop')
+      } else {
+        button.setAttribute('name', 'Run')
+      }
+    })
+
+    row.button('Step', () => {
+      this.ctx.state.ifs.step()
+      window.redraw_all()
+    })
+
+    row.button('Reset', () => {
+      this.ctx.state.ifs.reset()
+      window.redraw_all()
+    })
+
 
     row.tool('app.load_defaults()')
 
@@ -380,7 +405,11 @@ Workspace {
           let p2 = e.evaluate(t)
 
           if (p1) {
-            let dis = math.dist_to_line_2d(mpos as unknown as Vector2, p1 as unknown as Vector2, p2 as unknown as Vector2)
+            let dis = math.dist_to_line_2d(
+              mpos as unknown as Vector2,
+              p1 as unknown as Vector2,
+              p2 as unknown as Vector2
+            )
 
             if (dis >= limit) {
               continue
@@ -432,7 +461,7 @@ Workspace {
 
         //We're guaranted to have a face here
         let ok = !minret
-        ok = ok || !!((minret!.elem.flag & MeshFlags.SELECT) && !(f.flag & MeshFlags.SELECT))
+        ok = ok || !!(minret!.elem.flag & MeshFlags.SELECT && !(f.flag & MeshFlags.SELECT))
 
         if (ok) {
           minret = pick_cachering.next().load(f, f.type, 0)

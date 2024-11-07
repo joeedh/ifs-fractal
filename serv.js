@@ -1,4 +1,4 @@
-const PORT = 5001;
+const PORT = 4580;
 const HOST = "localhost"
 
 import url from 'url';
@@ -113,7 +113,7 @@ const serv = http.createServer({
 });
 
 serv.listen(PORT, HOST, () => {
-  console.log("Server listening on", HOST + ":" + PORT);
+  console.log("Server listening on http://" + HOST + ":" + PORT);
 });
 
 

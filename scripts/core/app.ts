@@ -1,10 +1,4 @@
-import {
-  simple,
-  util,
-  Vector3,
-  TextBoxBase,
-  nstructjs,
-} from '../path.ux/pathux.js'
+import {simple, util, Vector3, TextBoxBase, nstructjs} from '../path.ux/pathux.js'
 
 import './workspace.js'
 import {Mesh, MeshTypes} from './mesh.js'
@@ -17,6 +11,7 @@ import {IImagesTemplate, ImageWrangler} from './image_wrangler.js'
 import {Icons} from '../../assets/icon_enum.js'
 import {ToolModeBase, ToolModeClasses} from '../toolmode/toolmode_base.js'
 import {Properties} from './properties'
+import {IFS} from './ifs.js'
 
 import '../toolmode/all.js'
 
@@ -29,7 +24,7 @@ declare global {
   const _appstate: App
 }
 
-export const STARTUP_FILE_KEY = '_startup_file_1'
+export const STARTUP_FILE_KEY = '_startup_file_ifs1'
 
 import {StructReader} from '../path.ux/scripts/path-controller/types/util/nstructjs.js'
 import {FileData, IFileArgs} from '../path.ux/scripts/types/simple/simple.js'
@@ -39,13 +34,7 @@ export const TestImages = {
   imageColumns : 2,
   singletonMode: false,
   test1: {
-    size: [128, 256],
-  },
-  test2: {
-    dimen: 256,
-  },
-  test3: {
-    dimen: 128,
+    size: [512, 512],
   },
 } as IImagesTemplate
 
@@ -70,6 +59,7 @@ export class App extends simple.AppState<Context> {
   properties: PropertiesBag<typeof Properties>
   toolmodes = new ToolModeSet()
   testImages = new ImageWrangler(TestImages as unknown as undefined) // XXX
+  ifs: IFS
 
   constructor() {
     super(Context)
@@ -77,6 +67,7 @@ export class App extends simple.AppState<Context> {
     this.toolmodes = new ToolModeSet()
 
     this.createNewFile(true)
+    this.ifs = new IFS(this)
 
     this.saveFilesInJSON = true
     let dimen = 128

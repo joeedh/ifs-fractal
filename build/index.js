@@ -8095,11 +8095,11 @@ var SliderWithTextbox = class extends ColumnFrame {
   }
   linkTextBox() {
     this.updateTextBox();
-    let onchange = this.numslider.onchange;
+    let onchange2 = this.numslider.onchange;
     this.numslider.onchange = (e) => {
       this._value = e.value;
       this.updateTextBox();
-      onchange(e);
+      onchange2(e);
     };
   }
   setValue(val, fire_onchange = true) {
@@ -9284,10 +9284,10 @@ var Curve1DWidget = class extends ColumnFrame {
     if (this._lastGen !== void 0) {
       this._lastGen.killGUI(col, this.canvas);
     }
-    let onchange = this.dropbox.onchange;
+    let onchange2 = this.dropbox.onchange;
     this.dropbox.onchange = void 0;
     this.dropbox.setValue(this.value.generatorType);
-    this.dropbox.onchange = onchange;
+    this.dropbox.onchange = onchange2;
     col.clear();
     let onSourceUpdate = /* @__PURE__ */ __name(() => {
       if (!this.hasAttribute("datapath")) {
@@ -10722,14 +10722,14 @@ var ColorPickerButton = class extends UIBase10 {
     widget._init();
     widget.setRGBA(this.rgba[0], this.rgba[1], this.rgba[2], this.rgba[3]);
     widget.style["padding"] = "20px";
-    let onchange = /* @__PURE__ */ __name(() => {
+    let onchange2 = /* @__PURE__ */ __name(() => {
       this.rgba.load(widget.rgba);
       this.redraw();
       if (this.onchange) {
         this.onchange(this);
       }
     }, "onchange");
-    widget.onchange = onchange;
+    widget.onchange = onchange2;
     colorpicker.style["background-color"] = widget.getDefault("background-color");
     colorpicker.style["border-width"] = widget.getDefault("border-width");
   }
@@ -18333,9 +18333,9 @@ var config_default = {
   MESH_HANDLES: true,
   SELECTMASK: 1 /* VERTEX */ | 4 /* HANDLE */ | 2 /* EDGE */ | 32 /* FACE */,
   ENABLE_EXTRUDE: true,
-  AUTOSAVE: false,
-  AUTOSAVE_INTERVAL_MS: 1500,
-  DRAW_TEST_IMAGES: false
+  AUTOSAVE: true,
+  AUTOSAVE_INTERVAL_MS: 1e3,
+  DRAW_TEST_IMAGES: true
 };
 
 // scripts/toolmode/toolmode_base.ts
@@ -20002,6 +20002,27 @@ Workspace {
     row.button("Save Defaults", () => {
       _appstate.saveStartupFile();
     });
+    let button = row.button("Run", () => {
+      if (this.ctx.state.ifs.run()) {
+        button.setAttribute("name", "Stop");
+      } else {
+        button.setAttribute("name", "Run");
+      }
+    }).update.after(() => {
+      if (this.ctx.state.ifs.running) {
+        button.setAttribute("name", "Stop");
+      } else {
+        button.setAttribute("name", "Run");
+      }
+    });
+    row.button("Step", () => {
+      this.ctx.state.ifs.step();
+      window.redraw_all();
+    });
+    row.button("Reset", () => {
+      this.ctx.state.ifs.reset();
+      window.redraw_all();
+    });
     row.tool("app.load_defaults()");
     row.useIcons();
     row.prop("toolmodes.activeIndex");
@@ -20127,7 +20148,11 @@ Workspace {
         for (let i = 0; i < steps; i++, t += dt) {
           let p2 = e.evaluate(t);
           if (p1) {
-            let dis = math_exports.dist_to_line_2d(mpos, p1, p2);
+            let dis = math_exports.dist_to_line_2d(
+              mpos,
+              p1,
+              p2
+            );
             if (dis >= limit) {
               continue;
             }
@@ -20198,6 +20223,7 @@ for (let k in PropTypeMap) {
 var idgen = 0;
 var PropertiesBag = class {
   constructor(template) {
+    this.saving = false;
     //these two are used by props widget to detect updates
     this._updateGen = 0;
     this._id = idgen++;
@@ -20327,7 +20353,12 @@ var PropertiesBag = class {
       }
       def.on("change", window.redraw_all);
       if (item.onchange) {
-        def.on("change", item.onchange);
+        const this2 = this;
+        def.on("change", function(...args) {
+          if (!this2.saving) {
+            return item.onchange(...args);
+          }
+        });
       }
       this._props.push(def.data.copy());
       let pr = PropTypes;
@@ -20344,6 +20375,8 @@ var PropertiesBag = class {
         }
         if (item.slider) {
           def.simpleSlider();
+        } else if (item.roller) {
+          def.rollerSlider();
         }
         if ("unit" in item) {
           numberCast.baseUnit = numberCast.displayUnit = item.unit;
@@ -20415,6 +20448,7 @@ var PropertiesBag = class {
     return templ;
   }
   _save() {
+    this.saving = true;
     window.draw_ignore_push();
     try {
       for (let prop of this._props) {
@@ -20423,6 +20457,7 @@ var PropertiesBag = class {
     } finally {
       window.draw_ignore_pop();
     }
+    this.saving = false;
     return this._props;
   }
   loadSTRUCT(reader) {
@@ -22039,20 +22074,256 @@ var Icons4 = {
 };
 
 // scripts/core/properties.ts
+var onchange = /* @__PURE__ */ __name(() => {
+  if (_appstate !== void 0 && _appstate.ifs.running) {
+    _appstate.ifs.reset();
+  }
+}, "onchange");
 var Properties = {
   drawControls: { type: "bool", value: true },
   steps: { type: "int", value: 1, min: 0, max: 10, slideSpeed: 5 },
   boolVal: { type: "bool", value: true },
   float: { panel: "panel2", type: "float", value: 0, min: 0, max: 10, step: 0.05, decimalPlaces: 3 },
-  slider: {
-    panel: "panel2",
+  angle1: {
+    panel: "Parameters",
     type: "float",
-    slider: true,
+    roller: true,
     value: 0,
-    min: 0,
+    min: -Math.PI * 2,
+    max: Math.PI * 2,
+    step: 0.01,
+    decimalPlaces: 2,
+    baseUnit: "radian",
+    displayUnit: "degree",
+    onchange
+  },
+  scale1: {
+    panel: "Parameters",
+    type: "float",
+    roller: true,
+    value: 1,
+    min: -10,
     max: 10,
-    step: 0.05,
-    decimalPlaces: 3
+    step: 0.01,
+    decimalPlaces: 3,
+    unit: "none",
+    onchange
+  },
+  offset1: {
+    panel: "Parameters",
+    type: "float",
+    roller: true,
+    value: 0,
+    min: -0.5,
+    max: 0.5,
+    step: 0.01,
+    decimalPlaces: 3,
+    unit: "none",
+    onchange
+  },
+  angle2: {
+    panel: "Parameters",
+    type: "float",
+    roller: true,
+    value: 0,
+    min: -Math.PI * 2,
+    max: Math.PI * 2,
+    step: 0.01,
+    decimalPlaces: 2,
+    baseUnit: "radian",
+    displayUnit: "degree",
+    onchange
+  },
+  scale2: {
+    panel: "Parameters",
+    type: "float",
+    roller: true,
+    value: 1,
+    min: -10,
+    max: 10,
+    step: 0.01,
+    decimalPlaces: 3,
+    unit: "none",
+    onchange
+  },
+  offset2: {
+    panel: "Parameters",
+    type: "float",
+    roller: true,
+    value: 0,
+    min: -0.5,
+    max: 0.5,
+    step: 0.01,
+    decimalPlaces: 3,
+    unit: "none",
+    onchange
+  },
+  zoom: {
+    panel: "Parameters",
+    type: "float",
+    roller: true,
+    value: 1,
+    min: 1e-3,
+    max: 100,
+    step: 0.15,
+    expRate: 1.5,
+    decimalPlaces: 2,
+    unit: "none",
+    onchange
+  },
+  colorScale: {
+    panel: "Parameters",
+    type: "float",
+    roller: true,
+    value: 1,
+    min: 1e-3,
+    max: 100,
+    step: 0.1,
+    expRate: 1.5,
+    decimalPlaces: 2,
+    unit: "none",
+    onchange
+  }
+};
+
+// scripts/core/ifs.ts
+var FVALUE = 0, FW = 1, FG = 2, FTOT = 3;
+var Point = class _Point {
+  static {
+    __name(this, "Point");
+  }
+  constructor(x, y) {
+    this.co = new Vector2().loadXY(x, y);
+  }
+  copy() {
+    const p = new _Point(this.co[0], this.co[1]);
+    return p;
+  }
+};
+var projCachering = util_exports.cachering.fromConstructor(Vector2, 512);
+var unprojCachering = util_exports.cachering.fromConstructor(Vector2, 512);
+var IFS = class {
+  constructor(appstate) {
+    this.points = [];
+    this.size = new Vector2();
+    this.zoom = 1;
+    this._i = 0;
+    this.appstate = appstate;
+    this.#rand = new util_exports.MersenneRandom();
+    this.#rand.seed(0);
+  }
+  static {
+    __name(this, "IFS");
+  }
+  #rand;
+  rand() {
+    return this.#rand.random();
+    let s = 0;
+    for (let i = 0; i < 5; i++) {
+      s += this.#rand.random();
+    }
+    return s / 5;
+  }
+  get running() {
+    return this.timerID !== void 0;
+  }
+  get props() {
+    return this.appstate.ctx.properties;
+  }
+  run() {
+    if (this.timerID !== void 0) {
+      console.warn("stopping timer");
+      clearInterval(this.timerID);
+      this.timerID = void 0;
+      return false;
+    }
+    console.warn("starting timer");
+    this.timerID = setInterval(() => {
+      const time = util_exports.time_ms();
+      while (util_exports.time_ms() - time < 35) {
+        this.step();
+      }
+      window.redraw_all();
+    }, 40);
+    return true;
+  }
+  project(p) {
+    p = projCachering.next().load(p);
+    p.mulScalar(0.5 * this.zoom).addScalar(0.5).mul(this.size);
+    return p;
+  }
+  unproject(p) {
+    p = unprojCachering.next().load(p);
+    p.div(this.size);
+    p.mulScalar(2).subScalar(1);
+    return p;
+  }
+  step() {
+    const image = this.appstate.testImages.images.test1;
+    if (this.fdata === void 0 || this.fdata.length !== image.width * image.height * FTOT) {
+      this.fdata = new Float64Array(image.width * image.height * FTOT);
+      this.fdata.fill(0);
+    }
+    this.zoom = this.props.zoom;
+    this.size.loadXY(image.width, image.height);
+    const mat1 = new Matrix4();
+    const s1 = this.props.scale1;
+    mat1.euler_rotate(0, 0, this.props.angle1);
+    mat1.scale(s1, s1, s1);
+    mat1.translate(this.props.offset1, 0, 0);
+    const mat2 = new Matrix4();
+    const s2 = this.props.scale2;
+    mat2.euler_rotate(0, 0, this.props.angle2);
+    mat2.scale(s2, s2, s2);
+    mat2.translate(this.props.offset2, 0, 0);
+    const p = this.points.at(-1) ?? new Point(0, 0);
+    const p1 = p.copy();
+    const p2 = p.copy();
+    p1.co.multVecMatrix(mat1);
+    p2.co.multVecMatrix(mat2);
+    if (this.rand() > 0.5) {
+      this.points.push(p1, p2);
+    } else {
+      this.points.push(p2, p1);
+    }
+    const idata = image.data;
+    const size = this.size;
+    const fdata = this.fdata;
+    const colorScale = 1e-4 * this.props.colorScale;
+    for (let i = this.points.length - 2; i < this.points.length; i++) {
+      const p3 = this.points[i];
+      const co = this.project(p3.co);
+      const dx = Math.fract(co[0]) - 0.5;
+      const dy = Math.fract(co[1]) - 0.5;
+      co.floor();
+      if (co[0] < 0 || co[1] < 0 || co[0] >= size[0] || co[1] >= size[1]) {
+        continue;
+      }
+      const fi = co[1] * size[0] + co[0];
+      const idx = fi * 4;
+      let coverage = 1 - Math.sqrt(dx * dx + dy * dy) / Math.sqrt(2);
+      let f = 1;
+      const f2 = Math.tent(colorScale * 1e-3 * fdata[fi + FW]);
+      fdata[fi + FVALUE] += f * coverage;
+      fdata[fi + FG] += f2 * coverage;
+      fdata[fi + FW]++;
+      const invW = 1 / fdata[fi + FW];
+      idata[idx] = fdata[fi] * invW * 255;
+      idata[idx + 1] = fdata[fi + FG] * invW * 255;
+      idata[idx + 2] = fdata[fi] * invW * 255;
+      idata[idx + 3] = 255;
+    }
+  }
+  reset() {
+    console.warn("reset");
+    let image = this.appstate.testImages.images.test1;
+    for (let i = 0; i < image.data.length; i += 4) {
+      image.data[i] = 0;
+      image.data[i + 1] = 0;
+      image.data[i + 2] = 0;
+      image.data[i + 3] = 255;
+    }
+    this.points.length = 0;
   }
 };
 
@@ -22310,18 +22581,12 @@ PenToolMode {
 
 // scripts/core/app.ts
 struct_default.setWarningMode(0);
-var STARTUP_FILE_KEY = "_startup_file_1";
+var STARTUP_FILE_KEY = "_startup_file_ifs1";
 var TestImages = {
   imageColumns: 2,
   singletonMode: false,
   test1: {
-    size: [128, 256]
-  },
-  test2: {
-    dimen: 256
-  },
-  test3: {
-    dimen: 128
+    size: [512, 512]
   }
 };
 window.addEventListener("contextmenu", (e) => {
@@ -22335,13 +22600,13 @@ window.addEventListener("contextmenu", (e) => {
   e.preventDefault();
 });
 var App = class extends simple_exports.AppState {
-  // XXX
   constructor() {
     super(Context8);
     this.toolmodes = new ToolModeSet();
     this.testImages = new ImageWrangler(TestImages);
     this.toolmodes = new ToolModeSet();
     this.createNewFile(true);
+    this.ifs = new IFS(this);
     this.saveFilesInJSON = true;
     let dimen = 128;
   }

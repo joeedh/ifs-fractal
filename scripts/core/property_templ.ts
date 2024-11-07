@@ -47,6 +47,7 @@ let idgen = 0
 interface IDefBase<T extends string, V> {
   type: T
   value: V
+  onchange?: () => any
 }
 
 interface IBoolean extends IDefBase<'bool', boolean> {}
@@ -60,6 +61,7 @@ interface INumBase<T extends string, V = number> extends IDefBase<T, V> {
   baseUnit?: string
   displayUnit?: string
   unit?: string
+  roller?: boolean
 }
 
 interface IFloatBase<T extends string, V = number> extends IDefBase<T, V> {
@@ -108,6 +110,8 @@ interface PropertiesBagConstructor<T extends ITemplateDef = {}> {
   templateFromProps<T extends ITemplateDef = {}>(props: ToolProperty<any>[]): T
 }
 export class PropertiesBag<T extends ITemplateDef> {
+  private saving = false
+
   static STRUCT = nstructjs.inlineRegister(
     this,
     `
@@ -269,7 +273,12 @@ export class PropertiesBag<T extends ITemplateDef> {
       def.on('change', window.redraw_all)
 
       if (item.onchange) {
-        def.on('change', item.onchange)
+        const this2 = this
+        def.on('change', function(...args: any[]) { 
+          if (!this2.saving) {
+            return item.onchange(...args) 
+          }
+        })
       }
 
       this._props.push(def.data.copy())
@@ -291,6 +300,8 @@ export class PropertiesBag<T extends ITemplateDef> {
 
         if (item.slider) {
           def.simpleSlider()
+        } else if (item.roller) {
+          def.rollerSlider()
         }
 
         if ('unit' in item) {
@@ -381,6 +392,7 @@ export class PropertiesBag<T extends ITemplateDef> {
   }
 
   _save() {
+    this.saving = true
     window.draw_ignore_push()
 
     try {
@@ -391,6 +403,7 @@ export class PropertiesBag<T extends ITemplateDef> {
       window.draw_ignore_pop()
     }
 
+    this.saving = false
     return this._props
   }
 
