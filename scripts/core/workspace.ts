@@ -311,8 +311,13 @@ Workspace {
   }
 
   draw() {
-    if (!this.ctx) {
+    if (!this.ctx || !this.ctx.state) {
       return
+    }
+
+    if (this.ctx.state.ifs.didReset) {
+      this.ctx.state.ifs.didReset = false
+      this.ctx.state.ifs.step()
     }
 
     let canvas = this.canvas

@@ -22,7 +22,8 @@ let mimemap = {
   ".mtl" : "model/mtl",
   ".stl" : "model/stl",
   ".fbx" : "application/x-octet-stream",
-  ".csv" : "text/csv"
+  ".csv" : "text/csv",
+  ".map" : "application/json",
 };
 
 let getMime = (p) => {

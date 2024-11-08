@@ -151,6 +151,7 @@ export class App extends simple.AppState<Context> {
     let file = super.loadFileSync(data, args)
     console.log(file.objects)
 
+    this.ifs = new IFS(this)
     this.mesh = file.objects[0]
     this.properties = file.objects[1] ?? this.properties
 
@@ -190,6 +191,10 @@ export class App extends simple.AppState<Context> {
 
         break
       }
+    }
+
+    if (this.properties.asFullyTypedBag.autoRun) {
+      this.ifs.run()
     }
 
     window.redraw_all()

@@ -20078,8 +20078,12 @@ Workspace {
     }
   }
   draw() {
-    if (!this.ctx) {
+    if (!this.ctx || !this.ctx.state) {
       return;
+    }
+    if (this.ctx.state.ifs.didReset) {
+      this.ctx.state.ifs.didReset = false;
+      this.ctx.state.ifs.step();
     }
     let canvas = this.canvas;
     let dpi = UIBase2.getDPI();
@@ -22081,9 +22085,10 @@ var onchange = /* @__PURE__ */ __name(() => {
 }, "onchange");
 var Properties = {
   drawControls: { type: "bool", value: true },
-  steps: { type: "int", value: 1, min: 0, max: 10, slideSpeed: 5 },
-  boolVal: { type: "bool", value: true },
-  float: { panel: "panel2", type: "float", value: 0, min: 0, max: 10, step: 0.05, decimalPlaces: 3 },
+  autoRun: {
+    type: "bool",
+    value: false
+  },
   angle1: {
     panel: "Parameters",
     type: "float",
@@ -22183,6 +22188,58 @@ var Properties = {
     decimalPlaces: 2,
     unit: "none",
     onchange
+  },
+  swirl: {
+    panel: "Parameters",
+    type: "float",
+    roller: true,
+    value: 0,
+    min: -100,
+    max: 100,
+    step: 0.15,
+    expRate: 1.5,
+    decimalPlaces: 3,
+    unit: "none",
+    onchange
+  },
+  param2: {
+    panel: "Parameters",
+    type: "float",
+    roller: true,
+    value: 1,
+    min: -100,
+    max: 100,
+    step: 0.05,
+    expRate: 1.5,
+    decimalPlaces: 3,
+    unit: "none",
+    onchange
+  },
+  param3: {
+    panel: "Parameters",
+    type: "float",
+    roller: true,
+    value: 1,
+    min: -100,
+    max: 100,
+    step: 0.05,
+    expRate: 1.5,
+    decimalPlaces: 3,
+    unit: "none",
+    onchange
+  },
+  param4: {
+    panel: "Parameters",
+    type: "float",
+    roller: true,
+    value: 1,
+    min: -100,
+    max: 100,
+    step: 0.05,
+    expRate: 1.5,
+    decimalPlaces: 3,
+    unit: "none",
+    onchange
   }
 };
 
@@ -22208,6 +22265,7 @@ var IFS = class {
     this.size = new Vector2();
     this.zoom = 1;
     this._i = 0;
+    this.didReset = true;
     this.appstate = appstate;
     this.#rand = new util_exports.MersenneRandom();
     this.#rand.seed(0);
@@ -22239,10 +22297,13 @@ var IFS = class {
     }
     console.warn("starting timer");
     this.timerID = setInterval(() => {
-      const time = util_exports.time_ms();
-      while (util_exports.time_ms() - time < 35) {
-        this.step();
+      if (this !== _appstate.ifs) {
+        clearInterval(this.timerID);
+        this.timerID = void 0;
+        return;
       }
+      const time = util_exports.time_ms();
+      this.step(35);
       window.redraw_all();
     }, 40);
     return true;
@@ -22258,7 +22319,13 @@ var IFS = class {
     p.mulScalar(2).subScalar(1);
     return p;
   }
-  step() {
+  step(timeLimit = 35) {
+    const time = util_exports.time_ms();
+    while (util_exports.time_ms() - time < timeLimit) {
+      this.stepIntern();
+    }
+  }
+  stepIntern() {
     const image = this.appstate.testImages.images.test1;
     if (this.fdata === void 0 || this.fdata.length !== image.width * image.height * FTOT) {
       this.fdata = new Float64Array(image.width * image.height * FTOT);
@@ -22266,17 +22333,18 @@ var IFS = class {
     }
     this.zoom = this.props.zoom;
     this.size.loadXY(image.width, image.height);
+    const p = this.points.at(-1) ?? new Point(0, 0);
     const mat1 = new Matrix4();
+    const th = 0.1 * this.props.swirl * Math.atan2(p.co[1], p.co[0]);
     const s1 = this.props.scale1;
-    mat1.euler_rotate(0, 0, this.props.angle1);
+    mat1.euler_rotate(0, 0, this.props.angle1 + th);
     mat1.scale(s1, s1, s1);
     mat1.translate(this.props.offset1, 0, 0);
     const mat2 = new Matrix4();
     const s2 = this.props.scale2;
-    mat2.euler_rotate(0, 0, this.props.angle2);
+    mat2.euler_rotate(0, 0, this.props.angle2 + th);
     mat2.scale(s2, s2, s2);
     mat2.translate(this.props.offset2, 0, 0);
-    const p = this.points.at(-1) ?? new Point(0, 0);
     const p1 = p.copy();
     const p2 = p.copy();
     p1.co.multVecMatrix(mat1);
@@ -22315,6 +22383,7 @@ var IFS = class {
     }
   }
   reset() {
+    this.didReset = true;
     console.warn("reset");
     let image = this.appstate.testImages.images.test1;
     for (let i = 0; i < image.data.length; i += 4) {
@@ -22675,6 +22744,7 @@ var App = class extends simple_exports.AppState {
     }
     let file = super.loadFileSync(data, args);
     console.log(file.objects);
+    this.ifs = new IFS(this);
     this.mesh = file.objects[0];
     this.properties = file.objects[1] ?? this.properties;
     this.properties.patchTemplate(Properties);
@@ -22704,6 +22774,9 @@ var App = class extends simple_exports.AppState {
         }
         break;
       }
+    }
+    if (this.properties.asFullyTypedBag.autoRun) {
+      this.ifs.run();
     }
     window.redraw_all();
     return file;
